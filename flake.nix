@@ -1,0 +1,66 @@
+{
+  description = "Description for the project";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+
+    nixgl.url = "github:nix-community/nixGL";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    boulder.url = "github:berkeleytrue/nix-boulder-banner";
+  };
+
+  outputs = inputs @ {
+    flake-parts,
+    nixpkgs,
+    ...
+  }:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [
+        inputs.boulder.flakeModule
+      ];
+      systems = ["x86_64-linux"];
+      perSystem = {
+        config,
+        system,
+        ...
+      }: let
+        pkgs = import nixpkgs {
+          inherit system;
+
+          overlays = [
+          ];
+        };
+      in {
+        formatter.default = pkgs.alejandra;
+        boulder.commands = [
+          {
+            exec = pkgs.writeShellScriptBin "run" ''
+              cargo run
+            '';
+            description = "cargo run";
+          }
+          {
+            exec = pkgs.writeShellScriptBin "build" ''
+              cargo build
+            '';
+            description = "cargo build";
+          }
+        ];
+        devShells.default = pkgs.mkShell {
+          name = "rust";
+          inputsFrom = [
+            config.boulder.devShell
+          ];
+
+          buildInputs = with pkgs; [
+            cargo
+            cargo-generate
+            # rustc
+            # rustup
+            # rustfmt
+          ];
+        };
+      };
+      flake = {};
+    };
+}
