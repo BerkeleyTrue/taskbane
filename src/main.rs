@@ -1,16 +1,16 @@
+mod infra;
 use axum::{
     routing::{get, post},
     http::StatusCode,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{info};
+use crate::infra::axum::start_server;
 
 #[tokio::main]
 async fn main() {
     // initialize tracing
     tracing_subscriber::fmt::init();
-    info!("Starting Axum server...");
 
     // build our application with a route
     let app = Router::new()
@@ -19,10 +19,7 @@ async fn main() {
         // `POST /users` goes to `create_user`
         .route("/users", post(create_user));
 
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    info!("Listening on port 3000");
-    axum::serve(listener, app).await.unwrap();
+    start_server(app).await;
 }
 
 // basic handler that responds with a static string
