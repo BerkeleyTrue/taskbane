@@ -45,6 +45,12 @@
             '';
             description = "cargo build";
           }
+          {
+            exec = pkgs.writeShellScriptBin "watch" ''
+              cargo watch -x run
+            '';
+            description = "cargo watch -x run";
+          }
         ];
         devShells.default = pkgs.mkShell {
           name = "rust";
