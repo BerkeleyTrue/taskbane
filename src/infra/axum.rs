@@ -1,10 +1,16 @@
-use tracing::{info};
+use axum::{routing::MethodRouter, serve, Router};
+use tracing::info;
 
-pub async fn start_server(app: axum::Router) {
+pub async fn start_server(app: Router) {
     // Initialize tracing
     tracing::info!("Starting Axum server...");
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+
     info!("Listening on port 3000");
-    axum::serve(listener, app).await.unwrap();
+    serve(listener, app).await.unwrap();
+}
+
+pub fn route(path: &str, handler: MethodRouter) -> Router {
+    Router::new().route(path, handler)
 }
