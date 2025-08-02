@@ -2,7 +2,7 @@
   description = "Description for the project";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nixgl.url = "github:nix-community/nixGL";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -55,7 +55,7 @@
           buildInputs = with pkgs; [
             cargo
             cargo-generate
-            # rustc
+            rustc
             # rustup
             # rustfmt
           ];
