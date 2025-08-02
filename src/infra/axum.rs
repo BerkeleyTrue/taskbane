@@ -1,5 +1,6 @@
 use axum::{routing::MethodRouter, serve, Router};
 use tokio::signal;
+use tower_http::services::ServeDir;
 use tracing::info;
 
 pub fn route(path: &str, handler: MethodRouter) -> Router {
@@ -13,10 +14,13 @@ pub async fn start_server(app: Router) {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
     info!("Listening on port 3000");
-    serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+    serve(
+        listener,
+        app.nest_service("/public", ServeDir::new("public")),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .unwrap();
 }
 
 async fn shutdown_signal() {
@@ -41,6 +45,6 @@ async fn shutdown_signal() {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
-    
+
     info!("Initiating graceful shutdown...");
 }
