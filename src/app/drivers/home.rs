@@ -1,4 +1,4 @@
-use crate::infra::axum::route;
+use crate::{app::drivers::layout::layout, infra::axum::route};
 use axum::routing::get;
 use maud::html;
 
@@ -7,16 +7,10 @@ pub fn home_routes() -> axum::Router {
 }
 
 async fn get_home() -> maud::Markup {
-    html! {
-        (maud::DOCTYPE)
-        html {
-            head {
-                title { "Home Page" }
-            }
-            body {
-                h1 { "Welcome to the Home Page!" }
-                p { "This is a simple home page served by Axum." }
-            }
+    layout(html! {
+        div {
+            h1 { "Home Page!" }
+            p { "This is a simple home page served by Axum." }
         }
-    }
+    })
 }
