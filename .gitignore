@@ -26,3 +26,5 @@ target
 target/
 .direnv/
 .crush/
+node_modules/
+public/css/

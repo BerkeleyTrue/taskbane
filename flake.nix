@@ -62,6 +62,8 @@
             cargo
             cargo-generate
             rustc
+            pnpm
+            tailwindcss_4
             # rustup
             # rustfmt
           ];
