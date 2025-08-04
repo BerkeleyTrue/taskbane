@@ -14,6 +14,7 @@ pub async fn start_server(app: Router, tx: tokio::sync::oneshot::Sender<()>) {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
     info!("Listening on port 3000");
+    tx.send(()).unwrap();
     serve(
         listener,
         app.nest_service("/public", ServeDir::new("public")),
@@ -21,8 +22,6 @@ pub async fn start_server(app: Router, tx: tokio::sync::oneshot::Sender<()>) {
     .with_graceful_shutdown(shutdown_signal())
     .await
     .unwrap();
-
-    tx.send(()).unwrap();
 }
 
 async fn shutdown_signal() {
