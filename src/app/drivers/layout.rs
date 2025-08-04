@@ -10,7 +10,7 @@ pub fn layout(content: Markup) -> Markup {
                 link rel="stylesheet" href="/public/css/style.css";
                 title { "Taskbane" }
             }
-            body {
+            body class="h-dvh w-dvw" {
                 header {
                     h1 { "Taskbane" }
                 }
@@ -20,6 +20,7 @@ pub fn layout(content: Markup) -> Markup {
                 footer.w-full {
                     p { "Footer content goes here." }
                 }
+                script src="/public/js/hotreload.js" {}
             }
         }
     }
