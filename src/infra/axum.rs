@@ -7,7 +7,7 @@ pub fn route(path: &str, handler: MethodRouter) -> Router {
     Router::new().route(path, handler)
 }
 
-pub async fn start_server(app: Router) {
+pub async fn start_server(app: Router, tx: tokio::sync::oneshot::Sender<()>) {
     // Initialize tracing
     tracing::info!("Starting Axum server...");
 
@@ -21,6 +21,8 @@ pub async fn start_server(app: Router) {
     .with_graceful_shutdown(shutdown_signal())
     .await
     .unwrap();
+
+    tx.send(()).unwrap();
 }
 
 async fn shutdown_signal() {
