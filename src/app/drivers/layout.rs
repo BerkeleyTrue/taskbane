@@ -9,6 +9,7 @@ pub fn layout(content: Markup) -> Markup {
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 link rel="stylesheet" href="/public/css/style.css";
                 title { "Taskbane" }
+                link rel="icon" href="/public/favicon.ico";
             }
             body class="h-dvh w-dvw" {
                 header {
