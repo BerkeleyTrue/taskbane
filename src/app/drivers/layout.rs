@@ -21,7 +21,7 @@ pub fn layout(content: Markup) -> Markup {
                 footer.w-full {
                     p { "Footer content goes here." }
                 }
-                script src="/public/js/hotreload.js" {}
+                script src="/public/js/livereload.js" {}
             }
         }
     }

@@ -1,2 +1,2 @@
 pub mod axum;
-pub mod hotreload;
+pub mod livereload;

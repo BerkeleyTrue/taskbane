@@ -1,5 +1,5 @@
 use crate::app::drivers::home;
-use crate::infra::hotreload;
+use crate::infra::livereload;
 use axum::routing::get;
 use tokio_util::sync::CancellationToken;
 
@@ -10,7 +10,7 @@ pub fn add_routes(
 ) -> axum::Router {
     app.route("/ping", get(pong))
         .merge(home::home_routes())
-        .merge(hotreload::hot_reload(rx, shutdown_token))
+        .merge(livereload::live_reload(rx, shutdown_token))
 }
 
 async fn pong() -> &'static str {

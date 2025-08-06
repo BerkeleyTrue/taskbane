@@ -18,7 +18,7 @@ use tokio_stream::{
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
-pub fn hot_reload(on_start_rx: oneshot::Receiver<()>, shutdown_token: CancellationToken) -> Router {
+pub fn live_reload(on_start_rx: oneshot::Receiver<()>, shutdown_token: CancellationToken) -> Router {
     // convert the oneshot receiver into a broadcast channel sender
     // so that we can send a start event when the server starts
     // to all clients that are connected to the SSE endpoint
@@ -28,7 +28,7 @@ pub fn hot_reload(on_start_rx: oneshot::Receiver<()>, shutdown_token: Cancellati
     // so it can be consumed when the first client connects
     let on_start_rx = std::sync::Arc::new(tokio::sync::Mutex::new(Some(on_start_rx)));
 
-    async fn get_hot_reload(
+    async fn get_live_reload(
         State((tx, on_start_rx, shutdown_token)): State<(
             broadcast::Sender<()>,
             std::sync::Arc<tokio::sync::Mutex<Option<oneshot::Receiver<()>>>>,
@@ -62,7 +62,7 @@ pub fn hot_reload(on_start_rx: oneshot::Receiver<()>, shutdown_token: Cancellati
     }
 
     Router::new()
-        .route("/__hotreload", get(get_hot_reload))
+        .route("/__livereload", get(get_live_reload))
         // we make tx and on_start_rx shared state
         // so that they can be accessed by the handler
         .with_state((tx, on_start_rx, shutdown_token))
