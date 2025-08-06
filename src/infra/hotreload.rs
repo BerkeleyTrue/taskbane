@@ -15,9 +15,10 @@ use tokio_stream::{
     wrappers::{BroadcastStream, IntervalStream},
     Stream,
 };
+use tokio_util::sync::CancellationToken;
 use tracing::info;
 
-pub fn hot_reload(on_start_rx: oneshot::Receiver<()>) -> Router {
+pub fn hot_reload(on_start_rx: oneshot::Receiver<()>, shutdown_token: CancellationToken) -> Router {
     // convert the oneshot receiver into a broadcast channel sender
     // so that we can send a start event when the server starts
     // to all clients that are connected to the SSE endpoint
@@ -28,9 +29,10 @@ pub fn hot_reload(on_start_rx: oneshot::Receiver<()>) -> Router {
     let on_start_rx = std::sync::Arc::new(tokio::sync::Mutex::new(Some(on_start_rx)));
 
     async fn get_hot_reload(
-        State((tx, on_start_rx)): State<(
+        State((tx, on_start_rx, shutdown_token)): State<(
             broadcast::Sender<()>,
             std::sync::Arc<tokio::sync::Mutex<Option<oneshot::Receiver<()>>>>,
+            CancellationToken,
         )>,
     ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
         // Start listening for the start signal when first client connects
@@ -47,9 +49,11 @@ pub fn hot_reload(on_start_rx: oneshot::Receiver<()>) -> Router {
         });
         // tx.subscribe() creates a new receiver for each client
         let start_stream = BroadcastStream::new(tx.subscribe())
+            .take_until(shutdown_token.clone().cancelled_owned())
             .map(|_| Ok(Event::default().event("start").data("server started")));
 
         let heartbeat_stream = IntervalStream::new(tokio::time::interval(Duration::from_secs(30)))
+            .take_until(shutdown_token.clone().cancelled_owned())
             .map(|_| Ok(Event::default().event("heartbeat").data("ping")));
 
         let combined_stream = stream::select(start_stream, heartbeat_stream);
@@ -61,5 +65,5 @@ pub fn hot_reload(on_start_rx: oneshot::Receiver<()>) -> Router {
         .route("/__hotreload", get(get_hot_reload))
         // we make tx and on_start_rx shared state
         // so that they can be accessed by the handler
-        .with_state((tx, on_start_rx))
+        .with_state((tx, on_start_rx, shutdown_token))
 }

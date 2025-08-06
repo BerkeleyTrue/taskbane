@@ -1,5 +1,6 @@
 use axum::{routing::MethodRouter, serve, Router};
 use tokio::signal;
+use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 use tracing::info;
 
@@ -7,7 +8,11 @@ pub fn route(path: &str, handler: MethodRouter) -> Router {
     Router::new().route(path, handler)
 }
 
-pub async fn start_server(app: Router, tx: tokio::sync::oneshot::Sender<()>) {
+pub async fn start_server(
+    app: Router,
+    tx: tokio::sync::oneshot::Sender<()>,
+    shutdown_token: CancellationToken,
+) {
     // Initialize tracing
     tracing::info!("Starting Axum server...");
 
@@ -19,12 +24,12 @@ pub async fn start_server(app: Router, tx: tokio::sync::oneshot::Sender<()>) {
         listener,
         app.nest_service("/public", ServeDir::new("public")),
     )
-    .with_graceful_shutdown(shutdown_signal())
+    .with_graceful_shutdown(shutdown_signal(shutdown_token))
     .await
     .unwrap();
 }
 
-async fn shutdown_signal() {
+async fn shutdown_signal(shutdown_token: CancellationToken) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -48,4 +53,5 @@ async fn shutdown_signal() {
     }
 
     info!("Initiating graceful shutdown...");
+    shutdown_token.cancel();
 }
