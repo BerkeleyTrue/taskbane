@@ -1,9 +1,6 @@
-use crate::core::{
-    models::User,
-    ports::user as port,
-};
-use std::sync::Arc;
+use crate::core::{models::User, ports::user as port};
 use async_trait::async_trait;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub struct UserStore {
@@ -33,7 +30,7 @@ impl port::UserRepository for UserMemRepo {
 
     async fn update_user(&self, user: port::UpdateUser) -> Result<(), String> {
         let mut store = self.store.lock().await;
-        
+
         if let Some(existing_user) = store.users.iter_mut().find(|u| u.id() == user.id) {
             existing_user.with_username(user.username);
             Ok(())
@@ -53,8 +50,8 @@ impl port::UserRepository for UserMemRepo {
     }
 }
 
-pub fn create_user_repo() -> UserMemRepo {
-    UserMemRepo {
+pub fn create_user_repo() -> Box<UserMemRepo> {
+    Box::new(UserMemRepo {
         store: Arc::new(Mutex::new(UserStore { users: Vec::new() })),
-    }
+    })
 }
