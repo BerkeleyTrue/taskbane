@@ -14,8 +14,7 @@ async fn get_home() -> maud::Markup {
             div {
                 button
                     class="text-white bg-rose-400 hover:bg-rose-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                    onclick="initRegister()" 
-                {
+                    onclick="initRegister()" {
                         "Register"
                 }
             }

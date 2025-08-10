@@ -1,7 +1,8 @@
 mod app;
 mod infra;
+mod core;
 
-use crate::app::routes::add_routes;
+use crate::app::drivers::add_routes;
 use crate::infra::axum::start_server;
 use axum::Router;
 use tokio::sync::oneshot;
