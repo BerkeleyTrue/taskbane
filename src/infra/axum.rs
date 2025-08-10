@@ -4,7 +4,10 @@ use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 use tracing::info;
 
-pub fn route(path: &str, handler: MethodRouter) -> Router {
+pub fn route<S>(path: &str, handler: MethodRouter<S>) -> Router<S> 
+where
+    S: Clone + Send + Sync + 'static
+{
     Router::new().route(path, handler)
 }
 

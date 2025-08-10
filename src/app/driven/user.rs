@@ -1,5 +1,6 @@
 use crate::core::{models::User, ports::user as port};
 use async_trait::async_trait;
+use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -13,12 +14,15 @@ pub struct UserMemRepo {
 
 #[async_trait]
 impl port::UserRepository for UserMemRepo {
-    async fn add_user(&self, user: port::CreateUser) {
+    async fn add_user(&self, create_user: port::CreateUser) -> User {
         let mut store = self.store.lock().await;
-        store.users.push(User::new(user.id, user.username));
+        let user = User::new(create_user.id, create_user.username);
+        let user_clone = user.clone();
+        store.users.push(user_clone);
+        user
     }
 
-    async fn get_user(&self, id: u32) -> Result<User, String> {
+    async fn get_user(&self, id: Uuid) -> Result<User, String> {
         let store = self.store.lock().await;
 
         let Some(user) = store.users.iter().find(|&user| user.id() == id) else {
@@ -39,7 +43,7 @@ impl port::UserRepository for UserMemRepo {
         }
     }
 
-    async fn delete_user(&self, id: u32) -> Result<(), String> {
+    async fn delete_user(&self, id: Uuid) -> Result<(), String> {
         let mut store = self.store.lock().await;
         if let Some(pos) = store.users.iter().position(|u| u.id() == id) {
             store.users.remove(pos);
@@ -50,8 +54,8 @@ impl port::UserRepository for UserMemRepo {
     }
 }
 
-pub fn create_user_repo() -> Box<UserMemRepo> {
-    Box::new(UserMemRepo {
+pub fn create_user_repo() -> Arc<UserMemRepo> {
+    Arc::new(UserMemRepo {
         store: Arc::new(Mutex::new(UserStore { users: Vec::new() })),
     })
 }

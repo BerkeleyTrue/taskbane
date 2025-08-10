@@ -1,9 +1,11 @@
 pub mod user;
 
+use std::sync::Arc;
+
 use crate::core::ports;
 
 pub struct CreateServiceParams {
-    pub user_repo: Box<dyn ports::user::UserRepository>,
+    pub user_repo: Arc<dyn ports::user::UserRepository>,
 }
 
 pub fn create_services(params: CreateServiceParams) -> user::UserService {

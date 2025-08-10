@@ -1,6 +1,9 @@
-#[derive(Debug, Clone)]
+use serde::Serialize;
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize)]
 pub struct User {
-    id: u32,
+    id: Uuid,
     username: String,
 }
 
@@ -11,11 +14,11 @@ impl PartialEq for User {
 }
 
 impl User {
-    pub fn new(id: u32, username: String) -> Self {
+    pub fn new(id: Uuid, username: String) -> Self {
         User { id, username }
     }
 
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> Uuid {
         self.id
     }
 
