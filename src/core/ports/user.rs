@@ -13,7 +13,7 @@ pub struct UpdateUser {
 }
 
 #[async_trait]
-pub trait UserRepository {
+pub trait UserRepository: Send + Sync {
     async fn add_user(&self, user: CreateUser);
     async fn get_user(&self, id: u32) -> Result<User, String>;
     async fn update_user(&self, user: UpdateUser) -> Result<(), String>;
