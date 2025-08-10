@@ -3,6 +3,7 @@ use crate::core::{
     ports::user as port,
 };
 use std::sync::Arc;
+use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 pub struct UserStore {
@@ -13,6 +14,7 @@ pub struct UserMemRepo {
     store: Arc<Mutex<UserStore>>,
 }
 
+#[async_trait]
 impl port::UserRepository for UserMemRepo {
     async fn add_user(&self, user: port::CreateUser) {
         let mut store = self.store.lock().await;
