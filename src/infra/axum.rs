@@ -1,12 +1,19 @@
-use axum::{routing::MethodRouter, serve, Router};
+use std::time::Duration;
+
+use axum::{
+    http::{Request, Response},
+    routing::MethodRouter,
+    serve, Router,
+};
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
-use tower_http::services::ServeDir;
-use tracing::info;
+use tower::ServiceBuilder;
+use tower_http::{compression, services::ServeDir, trace};
+use tracing::{info, info_span, Span};
 
-pub fn route<S>(path: &str, handler: MethodRouter<S>) -> Router<S> 
+pub fn route<S>(path: &str, handler: MethodRouter<S>) -> Router<S>
 where
-    S: Clone + Send + Sync + 'static
+    S: Clone + Send + Sync + 'static,
 {
     Router::new().route(path, handler)
 }
@@ -25,7 +32,7 @@ pub async fn start_server(
     tx.send(()).unwrap();
     serve(
         listener,
-        app.nest_service("/public", ServeDir::new("public")),
+        middleware(app.nest_service("/public", ServeDir::new("public"))),
     )
     .with_graceful_shutdown(shutdown_signal(shutdown_token))
     .await
@@ -57,4 +64,20 @@ async fn shutdown_signal(shutdown_token: CancellationToken) {
 
     info!("Initiating graceful shutdown...");
     shutdown_token.cancel();
+}
+
+fn middleware(app: Router) -> Router {
+    let service = ServiceBuilder::new()
+        .layer(compression::CompressionLayer::new())
+        .layer(
+            trace::TraceLayer::new_for_http()
+                .make_span_with(
+                    |req: &Request<_>| info_span!("", status=tracing::field::Empty, method=%req.method(), path=%req.uri()),
+                )
+                .on_response(|res: &Response<_>, _latency: Duration, span: &Span| {
+                    span.record("status", &tracing::field::display(res.status()));
+                    info!("")
+                }),
+        );
+    app.layer(service)
 }
