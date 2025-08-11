@@ -1,0 +1,20 @@
+{#-
+vim: ft=jinja 
+-#}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="/public/css/style.css" />
+    <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+  </head>
+  <body class="h-dvh w-dvw">
+    <main class="h-100 w-100">
+      {% block content %}{% endblock %}
+    </main>
+    <script src="/public/js/livereload.js"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

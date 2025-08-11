@@ -11,6 +11,9 @@ importers:
       '@catppuccin/tailwindcss':
         specifier: ^1.0.0
         version: 1.0.0
+      prettier-plugin-jinja-template:
+        specifier: ^2.1.0
+        version: 2.1.0(prettier@3.6.2)
       tailwindcss:
         specifier: ^4.1.11
         version: 4.1.11
@@ -21,11 +24,27 @@ packages:
     resolution: {integrity: sha512-l8pOlcYe2ncGd8a1gUmL5AHmKlxR2+CHuG5kt4Me6IZwzntW1DoLmj89BH+DcsPHBsdDGLrTSv35emlYyU3FeQ==}
     engines: {node: '>=22.0.0'}
 
+  prettier-plugin-jinja-template@2.1.0:
+    resolution: {integrity: sha512-mzoCp2Oy9BDSug80fw3B3J4n4KQj1hRvoQOL1akqcDKBb5nvYxrik9zUEDs4AEJ6nK7QDTGoH0y9rx7AlnQ78Q==}
+    peerDependencies:
+      prettier: ^3.0.0
+
+  prettier@3.6.2:
+    resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
+    engines: {node: '>=14'}
+    hasBin: true
+
   tailwindcss@4.1.11:
     resolution: {integrity: sha512-2E9TBm6MDD/xKYe+dvJZAmg3yxIEDNRc0jwlNyDg/4Fil2QcSLjFKGVff0lAf1jjeaArlG/M75Ey/EYr/OJtBA==}
 
 snapshots:
 
   '@catppuccin/tailwindcss@1.0.0': {}
+
+  prettier-plugin-jinja-template@2.1.0(prettier@3.6.2):
+    dependencies:
+      prettier: 3.6.2
+
+  prettier@3.6.2: {}
 
   tailwindcss@4.1.11: {}

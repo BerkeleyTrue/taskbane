@@ -12,6 +12,7 @@
   "packageManager": "pnpm@10.13.1",
   "dependencies": {
     "@catppuccin/tailwindcss": "^1.0.0",
+    "prettier-plugin-jinja-template": "^2.1.0",
     "tailwindcss": "^4.1.11"
   }
 }
