@@ -1,7 +1,9 @@
 use std::time::Duration;
 
+use askama::Template;
 use axum::{
-    http::{Request, Response},
+    http::{Request, Response, StatusCode},
+    response::{Html, IntoResponse},
     routing::MethodRouter,
     serve, Router,
 };
@@ -18,6 +20,40 @@ where
     Router::new().route(path, handler)
 }
 
+#[derive(Debug)]
+pub enum AppError {
+    NotFound,
+    Render(askama::Error),
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response<axum::body::Body> {
+
+        #[derive(Debug, Template)]
+        #[template(path = "error.html")]
+        struct Tmpl {
+            title: String,
+            err: AppError,
+        }
+
+        let status = match &self {
+            AppError::NotFound => StatusCode::NOT_FOUND,
+            AppError::Render(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        let tmpl = Tmpl {
+            title: "Error".to_string(),
+            err: self,
+        };
+
+        if let Ok(body) = tmpl.render() {
+            (status, Html(body)).into_response()
+        } else {
+            (status, "Something went wrong").into_response()
+        }
+    }
+}
+
 pub async fn start_server(
     app: Router,
     tx: tokio::sync::oneshot::Sender<()>,
@@ -30,6 +66,7 @@ pub async fn start_server(
 
     info!("Listening on port 3000");
     tx.send(()).unwrap();
+    let app = app.fallback(|| async { AppError::NotFound });
     serve(
         listener,
         middleware(app.nest_service("/public", ServeDir::new("public"))),
