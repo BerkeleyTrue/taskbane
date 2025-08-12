@@ -1,13 +1,18 @@
 use axum::extract::State;
-use axum::{routing::post, Json};
-use serde::Deserialize;
+use axum::{
+    routing::{get, post},
+    Json,
+};
+use serde::{Deserialize, Serialize};
 
 use crate::core::models;
 use crate::infra::axum::route;
 use crate::services::user::UserService;
 
 pub fn auth_routes<S>(user_service: UserService) -> axum::Router<S> {
-    route("/auth/register", post(post_registration)).with_state(user_service)
+    route("/auth/register", post(post_registration))
+        .route("/auth/is_username_available", get(is_username_available))
+        .with_state(user_service)
 }
 
 #[derive(Deserialize)]
@@ -36,4 +41,18 @@ async fn post_registration(
         }));
     };
     Ok(Json(RegistrationOptions { user }))
+}
+
+#[derive(Serialize)]
+struct IsUsernameAvailRes {
+    is_available: bool,
+}
+
+async fn is_username_available(
+    State(user_service): State<UserService>,
+    Json(payload): Json<RegistrationParams>,
+) -> Json<IsUsernameAvailRes> {
+    let username = payload.username;
+    let is_available = user_service.is_username_available(username).await;
+    Json(IsUsernameAvailRes { is_available })
 }

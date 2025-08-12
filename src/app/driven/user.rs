@@ -14,7 +14,7 @@ pub struct UserMemRepo {
 
 #[async_trait]
 impl port::UserRepository for UserMemRepo {
-    async fn add_user(&self, create_user: port::CreateUser) -> Result<User, String> {
+    async fn add(&self, create_user: port::CreateUser) -> Result<User, String> {
         let mut store = self.store.lock().await;
         let new_user_id = create_user.id.clone();
         let existing_user = store.users.iter().any(move |(uuid, _)| {
@@ -32,7 +32,7 @@ impl port::UserRepository for UserMemRepo {
         Ok(user)
     }
 
-    async fn get_user(&self, id: Uuid) -> Result<User, String> {
+    async fn get(&self, id: Uuid) -> Result<User, String> {
         let store = self.store.lock().await;
 
         let Some(user) = store.users.get(&id) else {
@@ -42,7 +42,17 @@ impl port::UserRepository for UserMemRepo {
         Ok(user.clone())
     }
 
-    async fn update_user(&self, user: port::UpdateUser) -> Result<(), String> {
+    async fn get_by_username(&self, username: String) -> Option<User> {
+        let store = self.store.lock().await;
+        let Some((_, user)) = store.users.iter().find(|(_, user)| {
+            return user.username() == username;
+        }) else {
+            return None;
+        };
+        Some(user.clone())
+    }
+
+    async fn update(&self, user: port::UpdateUser) -> Result<(), String> {
         let mut store = self.store.lock().await;
 
         if let Some(existing_user) = store.users.get_mut(&user.id) {
@@ -53,7 +63,7 @@ impl port::UserRepository for UserMemRepo {
         }
     }
 
-    async fn delete_user(&self, id: Uuid) -> Result<(), String> {
+    async fn delete(&self, id: Uuid) -> Result<(), String> {
         let mut store = self.store.lock().await;
         if let Some(_) = store.users.remove(&id) {
             Ok(())

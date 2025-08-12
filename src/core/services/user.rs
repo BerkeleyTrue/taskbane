@@ -15,12 +15,16 @@ impl UserService {
         }
     }
 
+    pub async fn is_username_available(&self, username: String) -> bool {
+        self.repo.get_by_username(username).await.is_none()
+    }
+
     pub async fn register_user(&self, username: String) -> Result<models::User, String> {
         let id = Uuid::new_v4();
         let user = port::CreateUser {
             id,
             username,
         };
-        self.repo.add_user(user).await
+        self.repo.add(user).await
     }
 }
