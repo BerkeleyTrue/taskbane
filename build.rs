@@ -5,9 +5,10 @@ fn main() {
     println!("cargo:rerun-if-changed=package.json");
     println!("cargo:rerun-if-changed=pnpm-lock.yaml");
     println!("cargo:rerun-if-changed=src/app/drivers");
+    println!("cargo:rerun-if-changed=templates");
 
     let output = Command::new("tailwindcss")
-        .args(&["-i", "src/style.css", "-o", "public/css/style.css"])
+        .args(&["-i", "src/style.css", "-o", "public/css/style.css", "--content", "templates/**/*.html"])
         .output()
         .expect("Failed to execute tailwindcss command");
 
