@@ -1,5 +1,4 @@
 pub mod home;
-pub mod layout;
 pub mod auth;
 
 use crate::infra::livereload;

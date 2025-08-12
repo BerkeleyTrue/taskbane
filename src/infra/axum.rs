@@ -20,10 +20,12 @@ where
     Router::new().route(path, handler)
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum AppError {
+    #[error("Route not found")]
     NotFound,
-    Render(askama::Error),
+    #[error("Failed to rendered template")]
+    Render(#[from] askama::Error),
 }
 
 impl IntoResponse for AppError {
@@ -32,7 +34,6 @@ impl IntoResponse for AppError {
         #[derive(Debug, Template)]
         #[template(path = "error.html")]
         struct Tmpl {
-            title: String,
             err: AppError,
         }
 
@@ -42,7 +43,6 @@ impl IntoResponse for AppError {
         };
 
         let tmpl = Tmpl {
-            title: "Error".to_string(),
             err: self,
         };
 

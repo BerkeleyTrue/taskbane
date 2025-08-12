@@ -1,4 +1,4 @@
-use crate::infra::axum::route;
+use crate::infra::axum::{route, AppError};
 use askama::Template;
 use axum::{
     response::{Html, IntoResponse},
@@ -15,7 +15,7 @@ struct Home {
     title: String,
 }
 
-async fn get_home() -> Result<impl IntoResponse, axum::Error> {
+async fn get_home() -> Result<impl IntoResponse, AppError> {
     let templ = Home {
         title: "Taskbane".to_string(),
     };
