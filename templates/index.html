@@ -6,27 +6,17 @@ vim: ft=jinja
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-  <main>
-    <header class="w-full">
-      <h1>HomePage</h1>
-    </header>
-    <section class="w-full">
-      <p>
-        Manage your tasks efficiently with our passkey authentication system.
-      </p>
-      <p>Click the button below to log in using your passkey.</p>
-      <button
-        id="login-button"
-        class="text-white bg-rose-400 hover:bg-rose-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        onclick="initRegister()"
-      >
-        Register in with Passkey
-      </button>
-    </section>
-    <footer class="w-full">
-      <p>Footer content goes here</p>
-    </footer>
-  </main>
+  <section class="w-full">
+    <p>Manage your tasks efficiently with our passkey authentication system.</p>
+    <p>Click the button below to log in using your passkey.</p>
+    <button
+      id="login-button"
+      class="text-white bg-rose-400 hover:bg-rose-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      onclick="initRegister()"
+    >
+      Register in with Passkey
+    </button>
+  </section>
 {% endblock %}
 
 {% block scripts %}

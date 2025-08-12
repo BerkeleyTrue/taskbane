@@ -10,10 +10,96 @@ vim: ft=jinja
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
   </head>
-  <body class="h-dvh w-dvw">
-    <main class="h-100 w-100">
-      {% block content %}{% endblock %}
-    </main>
+  <body class="h-dvh w-dvw bg-gradient-to-br from-ctp-blue via-ctp-lavender to-ctp-pink">
+    <header class="bg-ctp-blue shadow">
+
+      <div
+        class="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8"
+      >
+        <a class="block text-teal-600" href="#">
+          <span class="sr-only">Home</span>
+          <svg
+            class="h-8"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M17.5 3.5L20.5 8L20.5 16L17.5 20.5L6.5 20.5L3.5 16L3.5 8L6.5 3.5L17.5 3.5Z"
+              fill="currentColor"
+            />
+            <path
+              d="M9 11H15V13H9V11Z"
+              fill="white"
+            />
+            <path
+              d="M10 14H14V15H10V14Z"
+              fill="white"
+            />
+          </svg>
+        </a>
+
+        <div class="flex flex-1 items-center justify-end md:justify-between">
+          <nav aria-label="Global" class="hidden md:block">
+            <ul class="flex items-center gap-6 text-sm">
+              <li>
+                <a
+                  class="text-gray-500 transition hover:text-gray-500/75"
+                  href="/about"
+                >
+                  About
+                </a>
+              </li>
+
+            </ul>
+          </nav>
+
+          <div class="flex items-center gap-4">
+            <div class="sm:flex sm:gap-4">
+              <a
+                class="block rounded-md bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700"
+                href="/login"
+              >
+                Login
+              </a>
+
+              <a
+                class="hidden rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 sm:block"
+                href="/register"
+              >
+                Register
+              </a>
+            </div>
+
+            <button
+              class="block rounded-sm bg-gray-100 p-2.5 text-gray-600 transition hover:text-gray-600/75 md:hidden"
+            >
+              <span class="sr-only">Toggle menu</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="size-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="h-100 w-100">{% block content %}{% endblock %}></main>
+
+    <footer class="w-full">
+      <p>Footer content goes here</p>
+    </footer>
     <script src="/public/js/livereload.js"></script>
     {% block scripts %}{% endblock %}
   </body>
