@@ -21,6 +21,6 @@ impl UserService {
             id,
             username,
         };
-        Ok(self.repo.add_user(user).await)
+        self.repo.add_user(user).await
     }
 }
