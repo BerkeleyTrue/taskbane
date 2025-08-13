@@ -23,8 +23,11 @@ impl UserService {
         let id = Uuid::new_v4();
         let user = port::CreateUser {
             id,
-            username,
+            username: username.clone(),
         };
+        if !self.is_username_available(username.clone()).await {
+            return Err("Username already exists".to_string());
+        }
         self.repo.add(user).await
     }
 }
