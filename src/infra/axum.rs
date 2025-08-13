@@ -30,7 +30,6 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response<axum::body::Body> {
-
         #[derive(Debug, Template)]
         #[template(path = "error.html")]
         struct Tmpl {
@@ -42,9 +41,7 @@ impl IntoResponse for AppError {
             AppError::Render(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
-        let tmpl = Tmpl {
-            err: self,
-        };
+        let tmpl = Tmpl { err: self };
 
         if let Ok(body) = tmpl.render() {
             (status, Html(body)).into_response()
@@ -69,7 +66,7 @@ pub async fn start_server(
     let app = app.fallback(|| async { AppError::NotFound });
     serve(
         listener,
-        middleware(app.nest_service("/public", ServeDir::new("public"))),
+        middleware(app).nest_service("/public", ServeDir::new("public")),
     )
     .with_graceful_shutdown(shutdown_signal(shutdown_token))
     .await
