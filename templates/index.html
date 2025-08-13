@@ -6,16 +6,34 @@ vim: ft=jinja
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-  <section class="w-full">
+  <section class="w-full h-full flex flex-col px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
     <p>Manage your tasks efficiently with our passkey authentication system.</p>
-    <p>Click the button below to log in using your passkey.</p>
-    <button
-      id="login-button"
-      class="text-ctp-base bg-ctp-sapphire hover:bg-ctp-sapphire-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-      onclick="initRegister()"
-    >
-      Register in with Passkey
-    </button>
+    <p>
+      Enter your username and click the button below to register using your
+      passkey.
+    </p>
+    <form>
+      <div class="mb-4">
+        <label for="username" class="block text-sm font-bold mb-2"
+          >Username:</label
+        >
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="shadow appearance-none border rounded w-full py-3 px-4 text-base leading-tight focus:outline-none focus:shadow-outline sm:py-2 sm:px-3 sm:text-sm"
+          required
+        />
+      </div>
+      <button
+        id="login-button"
+        type="button"
+        class="text-ctp-base bg-ctp-sapphire hover:bg-ctp-sapphire-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        onclick="initRegister()"
+      >
+        Register in with Passkey
+      </button>
+    </form>
   </section>
 {% endblock %}
 
