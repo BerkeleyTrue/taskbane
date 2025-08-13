@@ -15,7 +15,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
     let (tx, rx) = oneshot::channel();
     let shutdown_token = tokio_util::sync::CancellationToken::new();
-    let user_repo = driven::create_driven();
+    let (user_repo, challenge_service) = driven::create_driven();
     let user_service = services::create_services(CreateServiceParams { user_repo });
 
     // build our application with a route
@@ -25,6 +25,7 @@ async fn main() {
         rx,
         shutdown_token: shutdown_token.clone(),
         user_service,
+        challenge_service,
     });
 
     start_server(app, tx, shutdown_token).await;

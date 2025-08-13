@@ -6,16 +6,21 @@ use axum::{
     routing::{get, post},
     Json,
 };
-use serde::{Deserialize};
+use serde::Deserialize;
 
+use crate::app::driven::auth::{ChallengeService, StoredChallenge};
 use crate::core::models;
 use crate::infra::axum::route;
 use crate::services::user::UserService;
 
-pub fn auth_routes<S>(user_service: UserService) -> axum::Router<S> {
+pub fn auth_routes<S>(
+    user_service: UserService,
+    challenge_service: ChallengeService,
+) -> axum::Router<S> {
     route("/auth/register", post(post_registration))
         .route("/auth/username_validation", get(username_validation))
         .with_state(user_service)
+        .with_state(challenge_service)
 }
 
 #[derive(Deserialize)]
@@ -26,6 +31,7 @@ struct RegistrationParams {
 #[derive(serde::Serialize)]
 struct RegistrationOptions {
     user: models::User,
+    challenge: StoredChallenge,
 }
 
 #[derive(serde::Serialize)]
@@ -35,6 +41,7 @@ struct RegistrationFail {
 
 async fn post_registration(
     State(user_service): State<UserService>,
+    State(challenge_service): State<ChallengeService>,
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<RegistrationOptions>, Json<RegistrationFail>> {
     let username = payload.username;
@@ -43,7 +50,13 @@ async fn post_registration(
             message: "Fail".to_string(),
         }));
     };
-    Ok(Json(RegistrationOptions { user }))
+
+    let Ok(challenge) = challenge_service.create_challenge(user.id().clone()).await else {
+        return Err(Json(RegistrationFail {
+            message: "Failed to generate challenge".to_string(),
+        }));
+    };
+    Ok(Json(RegistrationOptions { user, challenge }))
 }
 
 #[derive(Deserialize, Debug)]
@@ -57,7 +70,6 @@ struct FormError {
     id: String,
     error: Option<String>,
 }
-
 
 async fn username_validation(
     State(user_service): State<UserService>,
@@ -84,7 +96,9 @@ async fn username_validation(
         if let Ok(body) = form_error.render() {
             return Html(body);
         } else {
-            return Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string());
+            return Html(
+                "<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string(),
+            );
         }
     }
 
