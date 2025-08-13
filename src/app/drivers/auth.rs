@@ -1,16 +1,15 @@
 use askama::Template;
 use axum::extract::State;
 use axum::response::{Html, IntoResponse};
-use axum::Form;
 use axum::{
     routing::{get, post},
     Json,
 };
+use axum::{Form, Router};
 use serde::Deserialize;
 
 use crate::app::driven::auth::{ChallengeService, StoredChallenge};
 use crate::core::models;
-use crate::infra::axum::route;
 use crate::services::user::UserService;
 
 #[derive(Clone)]
@@ -23,7 +22,8 @@ pub fn auth_routes<S>(
     user_service: UserService,
     challenge_service: ChallengeService,
 ) -> axum::Router<S> {
-    route("/auth/register", post(post_registration))
+    Router::new()
+        .route("/auth/register", post(post_registration))
         .route("/auth/username_validation", get(username_validation))
         .with_state(AuthState {
             user_service,
@@ -58,7 +58,11 @@ async fn post_registration(
         }));
     };
 
-    let Ok(challenge) = state.challenge_service.create_challenge(user.id().clone()).await else {
+    let Ok(challenge) = state
+        .challenge_service
+        .create_challenge(user.id().clone())
+        .await
+    else {
         return Err(Json(RegistrationFail {
             message: "Failed to generate challenge".to_string(),
         }));

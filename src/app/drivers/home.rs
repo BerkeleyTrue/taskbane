@@ -1,12 +1,13 @@
-use crate::infra::axum::{route, AppError};
+use crate::infra::axum::AppError;
 use askama::Template;
 use axum::{
     response::{Html, IntoResponse},
     routing::get,
+    Router,
 };
 
 pub fn home_routes() -> axum::Router {
-    route("/", get(get_home))
+    Router::new().route("/", get(get_home))
 }
 
 #[derive(Debug, Clone, Template)]

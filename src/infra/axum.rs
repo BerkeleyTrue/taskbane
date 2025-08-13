@@ -4,7 +4,6 @@ use askama::Template;
 use axum::{
     http::{Request, Response, StatusCode},
     response::{Html, IntoResponse},
-    routing::MethodRouter,
     serve, Router,
 };
 use tokio::signal;
@@ -12,13 +11,6 @@ use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
 use tower_http::{compression, services::ServeDir, trace};
 use tracing::{info, info_span, Span};
-
-pub fn route<S>(path: &str, handler: MethodRouter<S>) -> Router<S>
-where
-    S: Clone + Send + Sync + 'static,
-{
-    Router::new().route(path, handler)
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
