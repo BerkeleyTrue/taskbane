@@ -23,7 +23,13 @@ vim: ft=jinja
           name="username"
           class="shadow appearance-none border rounded w-full py-3 px-4 text-base leading-tight focus:outline-none focus:shadow-outline sm:py-2 sm:px-3 sm:text-sm"
           required
+          hx-get="/auth/username_validation"
+          hx-target="#username-error"
+          hx-select="#username-error"
+          hx-swap="outerHTML"
+          hx-trigger="keyup[target.value.length > 3] changed delay:500ms"
         />
+        <p id="username-error" class='text-red text-xs'></p>
       </div>
       <button
         id="login-button"

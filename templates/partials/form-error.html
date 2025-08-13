@@ -1,0 +1,10 @@
+{#-
+vim: ft=jinja 
+-#}
+<div id={{ id }} class="text-ctp-{% if let Some(error) = error %}red{% else %}base{% endif %} text-sm mt-2 flex">
+  {% if let Some(error) = error %}
+    <p>{{ error }}</p>
+  {% else %}
+    <p class="hidden">No errors</p>
+  {% endif %}
+</div>

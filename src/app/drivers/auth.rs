@@ -1,9 +1,12 @@
+use askama::Template;
 use axum::extract::State;
+use axum::response::{Html, IntoResponse};
+use axum::Form;
 use axum::{
     routing::{get, post},
     Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 use crate::core::models;
 use crate::infra::axum::route;
@@ -11,7 +14,7 @@ use crate::services::user::UserService;
 
 pub fn auth_routes<S>(user_service: UserService) -> axum::Router<S> {
     route("/auth/register", post(post_registration))
-        .route("/auth/is_username_available", get(is_username_available))
+        .route("/auth/username_validation", get(username_validation))
         .with_state(user_service)
 }
 
@@ -43,16 +46,57 @@ async fn post_registration(
     Ok(Json(RegistrationOptions { user }))
 }
 
-#[derive(Serialize)]
-struct IsUsernameAvailRes {
-    is_available: bool,
+#[derive(Deserialize, Debug)]
+struct UsernameValidationParams {
+    username: String,
 }
 
-async fn is_username_available(
+#[derive(Debug, Template)]
+#[template(path = "partials/form-error.html")]
+struct FormError {
+    id: String,
+    error: Option<String>,
+}
+
+
+async fn username_validation(
     State(user_service): State<UserService>,
-    Json(payload): Json<RegistrationParams>,
-) -> Json<IsUsernameAvailRes> {
-    let username = payload.username;
-    let is_available = user_service.is_username_available(username).await;
-    Json(IsUsernameAvailRes { is_available })
+    Form(input): Form<UsernameValidationParams>,
+) -> impl IntoResponse {
+    let username = input.username;
+    let id = "username-error".to_string();
+    let mut error = Option::None;
+    if username.is_empty() {
+        error = Some("Username cannot be empty");
+    } else if username.len() < 3 {
+        error = Some("Username must be at least 3 characters long</p>");
+    } else if username.len() > 20 {
+        error = Some("Username must be at most 20 characters long</p>");
+    } else if username.chars().any(|c| !c.is_alphanumeric() && c != '_') {
+        error = Some("Username can only contain alphanumeric characters and underscores</p>");
+    }
+
+    if let Some(error_message) = error {
+        let form_error = FormError {
+            id: id.clone(),
+            error: Some(error_message.to_string()),
+        };
+        if let Ok(body) = form_error.render() {
+            return Html(body);
+        } else {
+            return Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string());
+        }
+    }
+
+    let is_not_available = !(user_service.is_username_available(username).await);
+    let form_error = FormError {
+        id: id.clone(),
+        error: is_not_available.then(|| "Username is already taken".to_string()),
+    };
+
+    if let Ok(body) = form_error.render() {
+        return Html(body);
+    } else {
+        return Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string());
+    }
 }
