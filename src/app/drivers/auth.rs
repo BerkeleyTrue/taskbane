@@ -13,14 +13,22 @@ use crate::core::models;
 use crate::infra::axum::route;
 use crate::services::user::UserService;
 
+#[derive(Clone)]
+struct AuthState {
+    user_service: UserService,
+    challenge_service: ChallengeService,
+}
+
 pub fn auth_routes<S>(
     user_service: UserService,
     challenge_service: ChallengeService,
 ) -> axum::Router<S> {
     route("/auth/register", post(post_registration))
         .route("/auth/username_validation", get(username_validation))
-        .with_state(user_service)
-        .with_state(challenge_service)
+        .with_state(AuthState {
+            user_service,
+            challenge_service,
+        })
 }
 
 #[derive(Deserialize)]
@@ -40,18 +48,17 @@ struct RegistrationFail {
 }
 
 async fn post_registration(
-    State(user_service): State<UserService>,
-    State(challenge_service): State<ChallengeService>,
+    State(state): State<AuthState>,
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<RegistrationOptions>, Json<RegistrationFail>> {
     let username = payload.username;
-    let Ok(user) = user_service.register_user(username).await else {
+    let Ok(user) = state.user_service.register_user(username).await else {
         return Err(Json(RegistrationFail {
             message: "Fail".to_string(),
         }));
     };
 
-    let Ok(challenge) = challenge_service.create_challenge(user.id().clone()).await else {
+    let Ok(challenge) = state.challenge_service.create_challenge(user.id().clone()).await else {
         return Err(Json(RegistrationFail {
             message: "Failed to generate challenge".to_string(),
         }));
@@ -72,7 +79,7 @@ struct FormError {
 }
 
 async fn username_validation(
-    State(user_service): State<UserService>,
+    State(state): State<AuthState>,
     Form(input): Form<UsernameValidationParams>,
 ) -> impl IntoResponse {
     let username = input.username;
@@ -102,7 +109,7 @@ async fn username_validation(
         }
     }
 
-    let is_not_available = !(user_service.is_username_available(username).await);
+    let is_not_available = !(state.user_service.is_username_available(username).await);
     let form_error = FormError {
         id: id.clone(),
         error: is_not_available.then(|| "Username is already taken".to_string()),
