@@ -28,3 +28,4 @@ target/
 .crush/
 node_modules/
 public/css/
+.env

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use askama::Template;
 use axum::{
@@ -51,9 +51,10 @@ pub async fn start_server(
     // Initialize tracing
     tracing::info!("Starting Axum server...");
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| {"3000".to_string()});
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap();
 
-    info!("Listening on port 3000");
+    info!("Listening on port {port}");
     tx.send(()).unwrap();
     let app = app.fallback(|| async { AppError::NotFound });
     serve(
