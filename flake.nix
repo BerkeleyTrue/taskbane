@@ -64,6 +64,8 @@
             rustc
             pnpm
             tailwindcss_4
+            openssl
+            pkg-config
             # rustup
             # rustfmt
           ];
