@@ -17,7 +17,8 @@ async fn main() {
     dotenv().expect("Failed to load .env");
     let (tx, rx) = oneshot::channel();
     let shutdown_token = tokio_util::sync::CancellationToken::new();
-    let (user_repo, challenge_service) = driven::create_driven();
+    let webauthn = infra::webauthn::create_authn();
+    let (user_repo, auth_service) = driven::create_driven(webauthn);
     let user_service = services::create_services(CreateServiceParams { user_repo });
 
     // build our application with a route
@@ -27,7 +28,7 @@ async fn main() {
         rx,
         shutdown_token: shutdown_token.clone(),
         user_service,
-        challenge_service,
+        auth_service,
     });
 
     start_server(app, tx, shutdown_token).await;

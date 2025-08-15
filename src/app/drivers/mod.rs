@@ -1,9 +1,9 @@
-pub mod home;
 pub mod auth;
+pub mod home;
 
-use crate::infra::livereload;
+use crate::app::driven::auth::AuthService;
 use crate::core::services;
-use crate::driven::auth::ChallengeService;
+use crate::infra::livereload;
 use axum::routing::get;
 use tokio_util::sync::CancellationToken;
 
@@ -12,14 +12,14 @@ pub struct CreateDriverParams {
     pub rx: tokio::sync::oneshot::Receiver<()>,
     pub shutdown_token: CancellationToken,
     pub user_service: services::user::UserService,
-    pub challenge_service: ChallengeService,
+    pub auth_service: AuthService,
 }
 
 pub fn create_drivers(params: CreateDriverParams) -> axum::Router {
     let app = params.app;
     app.route("/ping", get(pong))
         .merge(home::home_routes())
-        .merge(auth::auth_routes(params.user_service, params.challenge_service))
+        .merge(auth::auth_routes(params.user_service, params.auth_service))
         .merge(livereload::live_reload(params.rx, params.shutdown_token))
 }
 

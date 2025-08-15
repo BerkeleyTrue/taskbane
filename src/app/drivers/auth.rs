@@ -7,27 +7,24 @@ use axum::{
 };
 use axum::{Form, Router};
 use serde::Deserialize;
+use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
-use crate::app::driven::auth::{ChallengeService, StoredChallenge};
-use crate::core::models;
+use crate::app::driven::auth::AuthService;
 use crate::services::user::UserService;
 
 #[derive(Clone)]
 struct AuthState {
     user_service: UserService,
-    challenge_service: ChallengeService,
+    auth_service: AuthService,
 }
 
-pub fn auth_routes<S>(
-    user_service: UserService,
-    challenge_service: ChallengeService,
-) -> axum::Router<S> {
+pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> axum::Router<S> {
     Router::new()
-        .route("/auth/register", post(post_registration))
+        .route("/auth/register", post(post_start_registration))
         .route("/auth/username_validation", get(username_validation))
         .with_state(AuthState {
             user_service,
-            challenge_service,
+            auth_service,
         })
 }
 
@@ -37,37 +34,100 @@ struct RegistrationParams {
 }
 
 #[derive(serde::Serialize)]
-struct RegistrationOptions {
-    user: models::User,
-    challenge: StoredChallenge,
-}
-
-#[derive(serde::Serialize)]
 struct RegistrationFail {
     message: String,
 }
 
-async fn post_registration(
-    State(state): State<AuthState>,
+// 1. The first step a client (user) will carry out is requesting a credential to be
+// registered. We need to provide a challenge for this. The work flow will be:
+//
+//          ┌───────────────┐     ┌───────────────┐      ┌───────────────┐
+//          │ Authenticator │     │    Browser    │      │     Site      │
+//          └───────────────┘     └───────────────┘      └───────────────┘
+//                  │                     │                      │
+//                  │                     │     1. Start Reg     │
+//                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│
+//                  │                     │                      │
+//                  │                     │     2. Challenge     │
+//                  │                     │◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤
+//                  │                     │                      │
+//                  │  3. Select Token    │                      │
+//             ─ ─ ─│◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                      │
+//   4. Vauth_service                     │                      │
+//                  │  4. Yield PubKey    │                      │
+//            └ ─ ─▶│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶                      │
+//                  │                     │                      │
+//                  │                     │  5. Send Reg Opts    │
+//                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│─ ─ ─
+//                  │                     │                      │     │ 5. Verify
+//                  │                     │                      │         PubKey
+//                  │                     │                      │◀─ ─ ┘
+//                  │                     │                      │─ ─ ─
+//                  │                     │                      │     │ 6. Persist
+//                  │                     │                      │       Credential
+//                  │                     │                      │◀─ ─ ┘
+//                  │                     │                      │
+//                  │                     │                      │
+//
+// In this step, we are responding to the start registration request, and providing
+// the challenge to the browser.
+async fn post_start_registration(
+    State(AuthState { user_service, auth_service }): State<AuthState>,
     Json(payload): Json<RegistrationParams>,
-) -> Result<Json<RegistrationOptions>, Json<RegistrationFail>> {
+) -> Result<Json<CreationChallengeResponse>, Json<RegistrationFail>> {
     let username = payload.username;
-    let Ok(user) = state.user_service.register_user(username).await else {
+    let Ok(user) = user_service.register_user(username).await else {
         return Err(Json(RegistrationFail {
             message: "Fail".to_string(),
         }));
     };
 
-    let Ok(challenge) = state
-        .challenge_service
-        .create_challenge(user.id().clone())
-        .await
-    else {
+    let Ok(challenge) = auth_service.create_registration(user.clone()).await else {
         return Err(Json(RegistrationFail {
             message: "Failed to generate challenge".to_string(),
         }));
     };
-    Ok(Json(RegistrationOptions { user, challenge }))
+    Ok(Json(challenge))
+}
+
+async fn post_finish_registration(
+    State(AuthState { user_service, auth_service }): State<AuthState>,
+    Json(reg): Json<RegisterPublicKeyCredential>,
+) {
+
+}
+
+// 2. Now that our public key has been registered, we can authenticate a user and verify
+// that they are the holder of that security token. The work flow is similar to registration.
+//
+//          ┌───────────────┐     ┌───────────────┐      ┌───────────────┐
+//          │ Authenticator │     │    Browser    │      │     Site      │
+//          └───────────────┘     └───────────────┘      └───────────────┘
+//                  │                     │                      │
+//                  │                     │     1. Start Auth    │
+//                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│
+//                  │                     │                      │
+//                  │                     │     2. Challenge     │
+//                  │                     │◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤
+//                  │                     │                      │
+//                  │  3. Select Token    │                      │
+//             ─ ─ ─│◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                      │
+//  4. Verify │     │                     │                      │
+//                  │    4. Yield Sig     │                      │
+//            └ ─ ─▶│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶                      │
+//                  │                     │    5. Send Auth      │
+//                  │                     │        Opts          │
+//                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│─ ─ ─
+//                  │                     │                      │     │ 5. Verify
+//                  │                     │                      │          Sig
+//                  │                     │                      │◀─ ─ ┘
+//                  │                     │                      │
+//                  │                     │                      │
+//
+// The user indicates the wish to start authentication and we need to provide a challenge.
+
+pub async fn authenticate() {
+
 }
 
 #[derive(Deserialize, Debug)]
