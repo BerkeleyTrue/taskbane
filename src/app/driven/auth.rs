@@ -55,6 +55,7 @@ pub struct AuthStore {
 pub trait AuthRepository: Send + Sync {
     async fn add(&self, stored_challenge: UserAuth) -> Result<UserAuth, String>;
     async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration, String>;
+    async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String>;
 }
 
 struct AuthMemRepo {
@@ -98,6 +99,21 @@ impl AuthRepository for AuthMemRepo {
 
         Ok(reg)
     }
+
+    async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String> {
+        let mut store = self.store.lock().await;
+
+        let Some(user_auth) = store.auths.get(user_id) else {
+            return Err("No auth foudn for user".to_string());
+        };
+        let mut user_auth = user_auth.clone();
+
+        user_auth.passkey = Some(pk);
+        user_auth.registration = None;
+
+        store.auths.insert(user_id.clone(), user_auth);
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -139,7 +155,7 @@ impl AuthService {
         let reg = self.repo.get_registration(user_id).await?;
         match self.webauthn.finish_passkey_registration(cred, &reg) {
             Ok(pk) => {
-                // let mut store = self.repo;
+                self.repo.update_passkey(user_id, pk).await?;
                 return Ok(());
             },
             Err(e) => {
