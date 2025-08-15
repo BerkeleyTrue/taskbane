@@ -9,6 +9,7 @@ use crate::infra::axum::start_server;
 use axum::Router;
 use dotenv::dotenv;
 use tokio::sync::oneshot;
+use tower_sessions::MemoryStore;
 
 #[tokio::main]
 async fn main() {
@@ -16,6 +17,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
     dotenv().expect("Failed to load .env");
     let (tx, rx) = oneshot::channel();
+    let session_store = MemoryStore::default();
     let shutdown_token = tokio_util::sync::CancellationToken::new();
     let webauthn = infra::webauthn::create_authn();
     let (user_repo, auth_service) = driven::create_driven(webauthn);
@@ -31,5 +33,5 @@ async fn main() {
         auth_service,
     });
 
-    start_server(app, tx, shutdown_token).await;
+    start_server(app, tx, shutdown_token, session_store).await;
 }

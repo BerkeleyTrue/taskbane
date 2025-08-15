@@ -10,6 +10,7 @@ use tokio::signal;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
 use tower_http::{compression, services::ServeDir, trace};
+use tower_sessions::{SessionManagerLayer, SessionStore};
 use tracing::{info, info_span, Span};
 
 #[derive(Debug, thiserror::Error)]
@@ -47,16 +48,18 @@ pub async fn start_server(
     app: Router,
     tx: tokio::sync::oneshot::Sender<()>,
     shutdown_token: CancellationToken,
+    session_store: impl SessionStore + Clone,
 ) {
     // Initialize tracing
     tracing::info!("Starting Axum server...");
+    let session_layer = SessionManagerLayer::new(session_store).with_secure(false);
 
     let port = env::var("PORT").unwrap_or_else(|_| {"3000".to_string()});
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap();
 
     info!("Listening on port {port}");
     tx.send(()).unwrap();
-    let app = app.fallback(|| async { AppError::NotFound });
+    let app = app.fallback(|| async { AppError::NotFound }).layer(session_layer);
     serve(
         listener,
         middleware(app).nest_service("/public", ServeDir::new("public")),
