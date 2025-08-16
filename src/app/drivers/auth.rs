@@ -7,6 +7,8 @@ use axum::{
 };
 use axum::{Form, Router};
 use serde::Deserialize;
+use tower_sessions::Session;
+use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
 use crate::app::driven::auth::AuthService;
@@ -20,8 +22,9 @@ struct AuthState {
 
 pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> axum::Router<S> {
     Router::new()
-        .route("/auth/register", post(post_start_registration))
         .route("/auth/username_validation", get(username_validation))
+        .route("/auth/register", post(post_start_registration))
+        .route("/auth/validate-registration", post(post_validate_registration))
         .with_state(AuthState {
             user_service,
             auth_service,
@@ -71,8 +74,14 @@ struct RegistrationFail {
 //
 // In this step, we are responding to the start registration request, and providing
 // the challenge to the browser.
+type SessionAuthState = (Uuid, String);
+
 async fn post_start_registration(
-    State(AuthState { user_service, auth_service }): State<AuthState>,
+    session: Session,
+    State(AuthState {
+        user_service,
+        auth_service,
+    }): State<AuthState>,
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<CreationChallengeResponse>, Json<RegistrationFail>> {
     let username = payload.username;
@@ -87,14 +96,28 @@ async fn post_start_registration(
             message: "Failed to generate challenge".to_string(),
         }));
     };
+
+    session
+        .insert("auth_state", (user.id(), user.username()))
+        .await
+        .expect("Failed to insert session state");
     Ok(Json(challenge))
 }
 
-async fn post_finish_registration(
-    State(AuthState { user_service, auth_service }): State<AuthState>,
-    Json(reg): Json<RegisterPublicKeyCredential>,
-) {
+async fn post_validate_registration(
+    session: Session,
+    State(AuthState {
+        user_service: _user_state,
+        auth_service,
+    }): State<AuthState>,
+    Json(cred): Json<RegisterPublicKeyCredential>,
+) -> Result<(), String> {
+    let Some((user_id, _)): Option<SessionAuthState> = session.get("auth_state").await.unwrap_or(None) else {
+        return Err("No user found in for session".to_string());
+    };
 
+    auth_service.validate_registration(&user_id, &cred).await?;
+    Ok(())
 }
 
 // 2. Now that our public key has been registered, we can authenticate a user and verify
@@ -126,9 +149,7 @@ async fn post_finish_registration(
 //
 // The user indicates the wish to start authentication and we need to provide a challenge.
 
-pub async fn authenticate() {
-
-}
+pub async fn authenticate() {}
 
 #[derive(Deserialize, Debug)]
 struct UsernameValidationParams {
