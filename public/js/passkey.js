@@ -32,7 +32,6 @@ async function initRegister(e) {
     })
     .catch(err => {
       console.error('Error during registration:', err);
-      alert('Registration failed. Please try again.');
     });
 
   console.log('creds: ', creds);

@@ -12,6 +12,7 @@ use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
 use crate::app::driven::auth::AuthService;
+use crate::infra::error::ApiError;
 use crate::services::user::UserService;
 
 #[derive(Clone)]
@@ -24,21 +25,14 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
     Router::new()
         .route("/auth/username_validation", get(username_validation))
         .route("/auth/register", post(post_start_registration))
-        .route("/auth/validate-registration", post(post_validate_registration))
+        .route(
+            "/auth/validate-registration",
+            post(post_validate_registration),
+        )
         .with_state(AuthState {
             user_service,
             auth_service,
         })
-}
-
-#[derive(Deserialize)]
-struct RegistrationParams {
-    username: String,
-}
-
-#[derive(serde::Serialize)]
-struct RegistrationFail {
-    message: String,
 }
 
 // 1. The first step a client (user) will carry out is requesting a credential to be
@@ -76,6 +70,11 @@ struct RegistrationFail {
 // the challenge to the browser.
 type SessionAuthState = (Uuid, String);
 
+#[derive(Deserialize)]
+struct RegistrationParams {
+    username: String,
+}
+
 async fn post_start_registration(
     session: Session,
     State(AuthState {
@@ -83,24 +82,23 @@ async fn post_start_registration(
         auth_service,
     }): State<AuthState>,
     Json(payload): Json<RegistrationParams>,
-) -> Result<Json<CreationChallengeResponse>, Json<RegistrationFail>> {
+) -> Result<Json<CreationChallengeResponse>, ApiError> {
     let username = payload.username;
     let Ok(user) = user_service.register_user(username).await else {
-        return Err(Json(RegistrationFail {
-            message: "Fail".to_string(),
-        }));
+        return Err(ApiError::BadRequest {
+            message: "No user found for username".to_string(),
+        });
     };
 
     let Ok(challenge) = auth_service.create_registration(user.clone()).await else {
-        return Err(Json(RegistrationFail {
-            message: "Failed to generate challenge".to_string(),
-        }));
+        return Err(ApiError::InternalServerError);
     };
 
     session
         .insert("auth_state", (user.id(), user.username()))
         .await
-        .expect("Failed to insert session state");
+        .map_err(|_| ApiError::InternalServerError)?;
+
     Ok(Json(challenge))
 }
 
@@ -111,12 +109,22 @@ async fn post_validate_registration(
         auth_service,
     }): State<AuthState>,
     Json(cred): Json<RegisterPublicKeyCredential>,
-) -> Result<(), String> {
-    let Some((user_id, _)): Option<SessionAuthState> = session.get("auth_state").await.unwrap_or(None) else {
-        return Err("No user found in for session".to_string());
-    };
+) -> Result<(), ApiError> {
+    let (user_id, _) = session
+        .get::<SessionAuthState>("auth_state")
+        .await
+        .unwrap_or(None)
+        .ok_or(ApiError::BadRequest {
+            message: "No user found for session".to_string(),
+        })?;
 
-    auth_service.validate_registration(&user_id, &cred).await?;
+    auth_service
+        .validate_registration(&user_id, &cred)
+        .await
+        .or(Err(ApiError::BadRequest {
+            message: "Failed to validate credentioals".to_string(),
+        }))?;
+
     Ok(())
 }
 

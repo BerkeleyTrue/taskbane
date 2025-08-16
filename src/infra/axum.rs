@@ -4,8 +4,9 @@ use askama::Template;
 use axum::{
     http::{Request, Response, StatusCode},
     response::{Html, IntoResponse},
-    serve, Router,
+    serve, Json, Router,
 };
+use serde::Serialize;
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
@@ -13,13 +14,7 @@ use tower_http::{compression, services::ServeDir, trace};
 use tower_sessions::{SessionManagerLayer, SessionStore};
 use tracing::{info, info_span, Span};
 
-#[derive(Debug, thiserror::Error)]
-pub enum AppError {
-    #[error("Route not found")]
-    NotFound,
-    #[error("Failed to rendered template")]
-    Render(#[from] askama::Error),
-}
+use crate::infra::error::{ApiError, AppError};
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response<axum::body::Body> {
@@ -44,6 +39,50 @@ impl IntoResponse for AppError {
     }
 }
 
+#[derive(Serialize)]
+struct ErrorMessage {
+    message: String,
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response<axum::body::Body> {
+        let (status, mess) = match &self {
+            ApiError::NotFound => (
+                StatusCode::NOT_FOUND,
+                ErrorMessage {
+                    message: self.to_string(),
+                },
+            ),
+            ApiError::Forbidden => (
+                StatusCode::FORBIDDEN,
+                ErrorMessage {
+                    message: self.to_string(),
+                },
+            ),
+            ApiError::BadRequest { message } => (
+                StatusCode::BAD_REQUEST,
+                ErrorMessage {
+                    message: message.to_string(),
+                },
+            ),
+            ApiError::Unauthorized => (
+                StatusCode::UNAUTHORIZED,
+                ErrorMessage {
+                    message: self.to_string(),
+                },
+            ),
+            ApiError::InternalServerError => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorMessage {
+                    message: self.to_string(),
+                },
+            ),
+        };
+
+        return (status, Json(mess)).into_response();
+    }
+}
+
 pub async fn start_server(
     app: Router,
     tx: tokio::sync::oneshot::Sender<()>,
@@ -54,12 +93,16 @@ pub async fn start_server(
     tracing::info!("Starting Axum server...");
     let session_layer = SessionManagerLayer::new(session_store).with_secure(false);
 
-    let port = env::var("PORT").unwrap_or_else(|_| {"3000".to_string()});
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
+        .await
+        .unwrap();
 
     info!("Listening on port {port}");
     tx.send(()).unwrap();
-    let app = app.fallback(|| async { AppError::NotFound }).layer(session_layer);
+    let app = app
+        .fallback(|| async { AppError::NotFound })
+        .layer(session_layer);
     serve(
         listener,
         middleware(app).nest_service("/public", ServeDir::new("public")),
