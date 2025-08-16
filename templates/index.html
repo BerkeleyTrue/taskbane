@@ -12,7 +12,10 @@ vim: ft=jinja
       Enter your username and click the button below to register using your
       passkey.
     </p>
-    <form>
+    <form
+      id="register-form"
+      onsubmit="initRegister(event);"
+    >
       <div class="mb-4">
         <label for="username" class="block text-sm font-bold mb-2"
           >Username:</label
@@ -33,9 +36,8 @@ vim: ft=jinja
       </div>
       <button
         id="login-button"
-        type="button"
+        type="submit"
         class="text-ctp-base bg-ctp-sapphire hover:bg-ctp-sapphire-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        onclick="initRegister()"
       >
         Register in with Passkey
       </button>
