@@ -1,4 +1,4 @@
-const log = (...args) => {
+var log = (...args) => {
   console.log('[LiveReload]', ...args);
 };
 var errorcount = 0;

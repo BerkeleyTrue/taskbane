@@ -30,6 +30,15 @@ async function initRegister(e) {
         publicKey,
       });
     })
+    .then((cred) => {
+      return fetch("/auth/validate_registration", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cred),
+      })
+    })
     .catch(err => {
       console.error('Error during registration:', err);
     });

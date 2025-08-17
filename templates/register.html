@@ -1,0 +1,42 @@
+{# vim: set ft=jinja: #}
+{% extends "_layout.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+  <section
+    class="w-full h-full flex flex-col px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16"
+  >
+    <form id="register-form" hx-on:submit="initRegister(event);">
+      <div class="mb-4">
+        <label for="username" class="block text-sm font-bold mb-2"
+          >Username:</label
+        >
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="shadow appearance-none border rounded w-full py-3 px-4 text-base leading-tight focus:outline-none focus:shadow-outline sm:py-2 sm:px-3 sm:text-sm"
+          required
+          hx-get="/auth/username_validation"
+          hx-target="#username-error"
+          hx-select="#username-error"
+          hx-swap="outerHTML"
+          hx-trigger="keyup[target.value.length > 3] changed delay:500ms"
+        />
+        <p id="username-error" class="text-red text-xs"></p>
+      </div>
+      <button
+        id="login-button"
+        type="submit"
+        class="text-ctp-base bg-ctp-sapphire hover:bg-ctp-sapphire-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Register in with Passkey
+      </button>
+    </form>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/public/js/passkey.js"></script>
+{% endblock %}

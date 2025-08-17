@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::extract::State;
-use axum::response::{Html, IntoResponse};
+use axum::response::{Html, IntoResponse, Redirect};
 use axum::{
     routing::{get, post},
     Json,
@@ -12,7 +12,7 @@ use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
 use crate::app::driven::auth::AuthService;
-use crate::infra::error::ApiError;
+use crate::infra::error::{ApiError, AppError};
 use crate::services::user::UserService;
 
 #[derive(Clone)]
@@ -23,16 +23,28 @@ struct AuthState {
 
 pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> axum::Router<S> {
     Router::new()
-        .route("/auth/username_validation", get(username_validation))
+        .route("/login", get(get_login))
         .route("/auth/register", post(post_start_registration))
         .route(
             "/auth/validate-registration",
             post(post_validate_registration),
         )
+        .route("/register", get(get_register))
+        .route("/auth/username_validation", get(username_validation))
         .with_state(AuthState {
             user_service,
             auth_service,
         })
+}
+
+#[derive(Debug, Clone, Template)]
+#[template(path = "register.html")]
+struct RegisterTemplate {
+}
+async fn get_register() -> Result<impl IntoResponse, AppError> {
+    let template = RegisterTemplate {
+    };
+    Ok(Html(template.render()?))
 }
 
 // 1. The first step a client (user) will carry out is requesting a credential to be
@@ -109,7 +121,7 @@ async fn post_validate_registration(
         auth_service,
     }): State<AuthState>,
     Json(cred): Json<RegisterPublicKeyCredential>,
-) -> Result<(), ApiError> {
+) -> Result<Redirect, ApiError> {
     let (user_id, _) = session
         .get::<SessionAuthState>("auth_state")
         .await
@@ -125,7 +137,19 @@ async fn post_validate_registration(
             message: "Failed to validate credentioals".to_string(),
         }))?;
 
-    Ok(())
+    Ok(Redirect::temporary("/auth/login"))
+}
+
+#[derive(Debug, Clone, Template)]
+#[template(path = "login.html")]
+struct LoginTemplate {
+    title: String,
+}
+async fn get_login() -> Result<impl IntoResponse, AppError> {
+    let template = LoginTemplate {
+        title: "Login".to_string(),
+    };
+    Ok(Html(template.render()?))
 }
 
 // 2. Now that our public key has been registered, we can authenticate a user and verify
