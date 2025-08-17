@@ -1,21 +1,18 @@
-{#-
-vim: ft=jinja 
--#}
+{# vim: set ft=jinja: #}
 {% extends "_layout.html" %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-  <section class="w-full h-full flex flex-col px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+  <section
+    class="w-full h-full flex flex-col px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16"
+  >
     <p>Manage your tasks efficiently with our passkey authentication system.</p>
     <p>
       Enter your username and click the button below to register using your
       passkey.
     </p>
-    <form
-      id="register-form"
-      onsubmit="initRegister(event);"
-    >
+    <form id="register-form" onsubmit="initRegister(event);">
       <div class="mb-4">
         <label for="username" class="block text-sm font-bold mb-2"
           >Username:</label
@@ -32,7 +29,7 @@ vim: ft=jinja
           hx-swap="outerHTML"
           hx-trigger="keyup[target.value.length > 3] changed delay:500ms"
         />
-        <p id="username-error" class='text-red text-xs'></p>
+        <p id="username-error" class="text-red text-xs"></p>
       </div>
       <button
         id="login-button"
