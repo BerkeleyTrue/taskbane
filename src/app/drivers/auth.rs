@@ -137,7 +137,7 @@ async fn post_validate_registration(
             message: "Failed to validate credentioals".to_string(),
         }))?;
 
-    Ok(Redirect::temporary("/auth/login"))
+    Ok(Redirect::to("/login"))
 }
 
 #[derive(Debug, Clone, Template)]
