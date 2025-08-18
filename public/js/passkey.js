@@ -1,3 +1,6 @@
+var toUint = (s) => Base64.toUint8Array(s);
+var fromUint = (s) => Base64.fromUint8Array(new Uint8Array(s), true);
+
 async function initRegister(e) {
   e.preventDefault();
   const username = document.getElementById('username').value;
@@ -19,10 +22,10 @@ async function initRegister(e) {
     .then(x => (console.log('credOptions: ', x), x))
     .then((publicKey) => ({
       ...publicKey,
-      challenge: new TextEncoder().encode(publicKey.challenge).buffer,
+      challenge: toUint(publicKey.challenge),
       user: {
         ...publicKey.user,
-        id: new TextEncoder().encode(publicKey.user.id).buffer,
+        id: toUint(publicKey.user.id),
       },
     }))
     .then((publicKey) => {
@@ -31,17 +34,25 @@ async function initRegister(e) {
       });
     })
     .then((cred) => {
-      return fetch("/auth/validate_registration", {
+      return fetch("/auth/validate-registration", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(cred),
+        body: JSON.stringify({
+          id: cred.id,
+          rawId: fromUint(cred.rawId),
+          response: {
+            attestationObject: fromUint(cred.response.attestationObject),
+            clientDataJSON: fromUint(cred.response.clientDataJSON),
+          },
+          type: cred.type,
+        }),
       })
     })
     .catch(err => {
       console.error('Error during registration:', err);
     });
 
-  console.log('creds: ', creds);
+  console.log('response: ', creds);
 }
