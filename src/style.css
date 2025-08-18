@@ -1,2 +1,26 @@
 @import "tailwindcss";
 @import "@catppuccin/tailwindcss/frappe";
+
+@theme {
+  --color-white: var(--color-ctp-text);
+  --color-foreground: var(--color-ctp-text);
+  --color-background: var(--color-ctp-base);
+
+  --color-primary: var(--color-ctp-blue);
+  --color-primary-foreground: var(--color-ctp-crust);
+
+  --color-secondary: var(--color-ctp-surface1);
+  --color-secondary-foreground: var(--color-ctp-text);
+
+  --color-muted: var(--color-ctp-surface1);
+  --color-muted-foreground: var(--color-ctp-subtext0);
+
+  --color-accent: var(--color-ctp-surface1);
+  --color-accent-foreground: var(--color-ctp-text);
+
+  --color-destructive: var(--color-ctp-red);
+  --color-border: var(--color-ctp-overlay0);
+  --color-input: var(--color-ctp-surface1);
+  --color-ring: var(--color-ctp-lavender);
+  --tw-shadow-color: var(--color-ctp-overlay0);
+}
