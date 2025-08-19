@@ -17,6 +17,14 @@ async function initRegister(e) {
       username,
     }),
   })
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((err) => {
+          throw new Error(err.message || 'Failed to fetch registration options');
+        });
+      }
+      return res;
+    })
     .then((res) => res.json())
     .then((credOptions) => credOptions.publicKey)
     .then(x => (console.log('credOptions: ', x), x))
@@ -48,7 +56,22 @@ async function initRegister(e) {
           },
           type: cred.type,
         }),
+        redirect: 'follow', // doesn't seem to work
       })
+    })
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((err) => {
+          throw new Error(err.message || 'Failed to validate registration');
+        });
+      }
+      return res;
+    })
+    .then((res) => {
+      if (res.redirected) {
+        window.location.href = res.url;
+      }
+      return res;
     })
     .catch(err => {
       console.error('Error during registration:', err);
