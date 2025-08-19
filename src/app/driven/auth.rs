@@ -6,8 +6,7 @@ use tracing::info;
 use uuid::Uuid;
 use webauthn_rs::{
     prelude::{
-        CreationChallengeResponse, Passkey, PasskeyAuthentication, PasskeyRegistration,
-        RegisterPublicKeyCredential,
+        AuthenticationResult, CreationChallengeResponse, Passkey, PasskeyAuthentication, PasskeyRegistration, PublicKeyCredential, RegisterPublicKeyCredential, RequestChallengeResponse
     },
     Webauthn,
 };
@@ -18,7 +17,7 @@ use crate::core::models::User;
 pub struct UserAuth {
     registration: Option<PasskeyRegistration>,
     authentication: Option<PasskeyAuthentication>,
-    passkey: Option<Passkey>,
+    passkeys: Vec<Passkey>,
     user_id: Uuid,
 }
 
@@ -28,7 +27,7 @@ impl UserAuth {
             user_id,
             registration: Some(registration),
             authentication: None,
-            passkey: None,
+            passkeys: Vec::new(),
         }
     }
 
@@ -41,8 +40,8 @@ impl UserAuth {
     pub fn authentication(&self) -> Option<PasskeyAuthentication> {
         self.authentication.clone()
     }
-    pub fn passkey(&self) -> Option<Passkey> {
-        self.passkey.clone()
+    pub fn passkey(&self) -> Vec<Passkey> {
+        self.passkeys.clone()
     }
 }
 
@@ -55,7 +54,14 @@ pub struct AuthStore {
 pub trait AuthRepository: Send + Sync {
     async fn add(&self, stored_challenge: UserAuth) -> Result<UserAuth, String>;
     async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration, String>;
+
     async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String>;
+    async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>, String>;
+
+    async fn update_authen(&self, user_id: &Uuid, pka: PasskeyAuthentication)
+        -> Result<(), String>;
+    async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication, String>;
+    async fn update_credentials(&self, user_id: &Uuid, credentials: AuthenticationResult) -> Result<(), String>;
 }
 
 struct AuthMemRepo {
@@ -100,18 +106,78 @@ impl AuthRepository for AuthMemRepo {
         Ok(reg)
     }
 
+    async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>, String> {
+        let store = self.store.lock().await;
+        let user_auth = store
+            .auths
+            .get(user_id)
+            .ok_or("No auth found for user".to_string())?;
+        Ok(user_auth.passkeys.clone())
+    }
+
     async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String> {
         let mut store = self.store.lock().await;
 
         let Some(user_auth) = store.auths.get(user_id) else {
-            return Err("No auth foudn for user".to_string());
+            return Err("No auth found for user".to_string());
         };
         let mut user_auth = user_auth.clone();
 
-        user_auth.passkey = Some(pk);
+        user_auth.passkeys.push(pk);
         user_auth.registration = None;
 
         store.auths.insert(user_id.clone(), user_auth);
+        Ok(())
+    }
+
+    async fn update_authen(
+        &self,
+        user_id: &Uuid,
+        pka: PasskeyAuthentication,
+    ) -> Result<(), String> {
+        let mut store = self.store.lock().await;
+        let mut user_auth = store.auths.get(user_id).ok_or("No auth found for user".to_string())?.clone();
+
+        user_auth.authentication = Some(pka);
+        user_auth.registration = None;
+
+        store.auths.insert(user_id.clone(), user_auth);
+
+        Ok(())
+    }
+
+    async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication, String> {
+        let mut store = self.store.lock().await;
+        let mut user_auth = store
+            .auths
+            .get(user_id)
+            .ok_or("Could not find user auth".to_string())?
+            .clone();
+
+        let pka = user_auth
+            .authentication()
+            .ok_or("User has no authentication in progress".to_string())?;
+
+        user_auth.authentication = None;
+        user_auth.registration = None;
+
+        store.auths.insert(user_id.clone(), user_auth);
+
+        Ok(pka)
+    }
+
+    async fn update_credentials(&self, user_id: &Uuid, credentials: AuthenticationResult) -> Result<(), String> {
+        let mut store = self.store.lock().await;
+        let mut auth_state = store.auths.get(user_id).ok_or("Could not find user auth".to_string())?.clone();
+
+        auth_state.passkeys.iter_mut().for_each(|pk| {
+            // This will update the credential if it's the matching
+            // one. Otherwise it's ignored. That is why it is safe to
+            // iterate this over the full list.
+            pk.update_credential(&credentials);
+        });
+
+        store.auths.insert(user_id.clone(), auth_state);
         Ok(())
     }
 }
@@ -151,18 +217,44 @@ impl AuthService {
         }
     }
 
-    pub async fn validate_registration(&self, user_id: &Uuid, cred: &RegisterPublicKeyCredential) -> Result<(), String> {
+    pub async fn validate_registration(
+        &self,
+        user_id: &Uuid,
+        cred: &RegisterPublicKeyCredential,
+    ) -> Result<(), String> {
         let reg = self.repo.get_registration(user_id).await?;
         match self.webauthn.finish_passkey_registration(cred, &reg) {
             Ok(pk) => {
                 self.repo.update_passkey(user_id, pk).await?;
                 return Ok(());
-            },
+            }
             Err(e) => {
                 info!("validating registration {:?}", e);
-                return Err("Error validating registration".to_string())
+                return Err("Error validating registration".to_string());
             }
         }
+    }
+
+    pub async fn login(&self, user_id: &Uuid) -> Result<RequestChallengeResponse, String> {
+        let passkeys = self.repo.get_passkeys(user_id).await?;
+        let (rcr, pka) = self
+            .webauthn
+            .start_passkey_authentication(&passkeys)
+            .or_else(|err| {
+                return Err(err.to_string());
+            })?;
+
+        self.repo.update_authen(user_id, pka).await?;
+
+        Ok(rcr)
+    }
+
+    pub async fn validate_login(&self, user_id: &Uuid, pkc: &PublicKeyCredential) -> Result<(), String> {
+        let pka = self.repo.get_authentication(user_id).await?;
+
+        let credentials = self.webauthn.finish_passkey_authentication(pkc, &pka).or_else(|err| { Err(err.to_string()) })?;
+        self.repo.update_credentials(user_id, credentials).await?;
+        Ok(())
     }
 }
 

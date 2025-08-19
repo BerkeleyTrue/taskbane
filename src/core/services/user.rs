@@ -1,7 +1,7 @@
+use crate::core::models;
+use crate::core::ports::user as port;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::core::ports::user as port;
-use crate::core::models;
 
 #[derive(Clone)]
 pub struct UserService {
@@ -10,9 +10,7 @@ pub struct UserService {
 
 impl UserService {
     pub fn new(repo: Arc<dyn port::UserRepository>) -> Self {
-        Self {
-            repo: repo
-        }
+        Self { repo: repo }
     }
 
     pub async fn is_username_available(&self, username: String) -> bool {
@@ -29,5 +27,11 @@ impl UserService {
             return Err("Username already exists".to_string());
         }
         self.repo.add(user).await
+    }
+    pub async fn get_login(&self, username: String) -> Result<models::User, String> {
+        self.repo
+            .get_by_username(username)
+            .await
+            .ok_or_else(|| "No user found for username".to_string())
     }
 }

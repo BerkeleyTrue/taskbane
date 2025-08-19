@@ -8,8 +8,12 @@ use axum::{
 use axum::{Form, Router};
 use serde::Deserialize;
 use tower_sessions::Session;
+use tracing::info;
 use uuid::Uuid;
-use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
+use webauthn_rs::prelude::{
+    CreationChallengeResponse, PublicKeyCredential, RegisterPublicKeyCredential,
+    RequestChallengeResponse,
+};
 
 use crate::app::driven::auth::AuthService;
 use crate::infra::error::{ApiError, AppError};
@@ -23,13 +27,15 @@ struct AuthState {
 
 pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> axum::Router<S> {
     Router::new()
-        .route("/login", get(get_login))
+        .route("/register", get(get_register))
         .route("/auth/register", post(post_start_registration))
         .route(
             "/auth/validate-registration",
             post(post_validate_registration),
         )
-        .route("/register", get(get_register))
+        .route("/login", get(get_login))
+        .route("/auth/login", post(post_authenticate))
+        .route("/auth/validate-login", post(post_validate_authen))
         .route("/auth/username_validation", get(username_validation))
         .with_state(AuthState {
             user_service,
@@ -39,11 +45,9 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "register.html")]
-struct RegisterTemplate {
-}
+struct RegisterTemplate {}
 async fn get_register() -> Result<impl IntoResponse, AppError> {
-    let template = RegisterTemplate {
-    };
+    let template = RegisterTemplate {};
     Ok(Html(template.render()?))
 }
 
@@ -142,13 +146,9 @@ async fn post_validate_registration(
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "login.html")]
-struct LoginTemplate {
-    title: String,
-}
+struct LoginTemplate {}
 async fn get_login() -> Result<impl IntoResponse, AppError> {
-    let template = LoginTemplate {
-        title: "Login".to_string(),
-    };
+    let template = LoginTemplate {};
     Ok(Html(template.render()?))
 }
 
@@ -181,7 +181,71 @@ async fn get_login() -> Result<impl IntoResponse, AppError> {
 //
 // The user indicates the wish to start authentication and we need to provide a challenge.
 
-pub async fn authenticate() {}
+#[derive(Deserialize)]
+struct LoginParams {
+    username: String,
+}
+
+async fn post_authenticate(
+    session: Session,
+    State(AuthState {
+        user_service,
+        auth_service,
+    }): State<AuthState>,
+    Json(LoginParams { username }): Json<LoginParams>,
+) -> Result<Json<RequestChallengeResponse>, ApiError> {
+    let _ = session
+        .remove::<SessionAuthState>("auth_state")
+        .await
+        .unwrap_or(None);
+    let user = user_service.get_login(username).await.or_else(|err| {
+        info!(err);
+        return Err(ApiError::BadRequest {
+            message: "No user found for username".to_string(),
+        });
+    })?;
+
+    let rcr = auth_service.login(&user.id()).await.or_else(|err| {
+        info!("Error during login: {:?}", err);
+        return Err(ApiError::BadRequest {
+            message: "Failed to login user".to_string(),
+        });
+    })?;
+
+    session
+        .insert("auth_state", (user.id().clone(), user.username()))
+        .await
+        .or_else(|err| {
+            info!("failed to save session: {:?}", err);
+            return Err(ApiError::InternalServerError);
+        })?;
+
+    Ok(Json(rcr))
+}
+
+async fn post_validate_authen(
+    session: Session,
+    State(AuthState {
+        user_service: _user_service,
+        auth_service,
+    }): State<AuthState>,
+    Json(pkc): Json<PublicKeyCredential>,
+) -> Result<Redirect, ApiError> {
+    let (user_id, _) = session
+        .get::<SessionAuthState>("auth_state")
+        .await
+        .unwrap_or(None)
+        .ok_or(ApiError::InternalServerError)?;
+
+    auth_service.validate_login(&user_id, &pkc).await.or_else(|err| {
+        info!("Error validating login: {:?}", err);
+        return Err(ApiError::BadRequest {
+            message: "Failed to validate login".to_string(),
+        })
+    })?;
+
+    Ok(Redirect::to(""))
+}
 
 #[derive(Deserialize, Debug)]
 struct UsernameValidationParams {
