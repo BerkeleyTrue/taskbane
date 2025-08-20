@@ -1,14 +1,14 @@
 var toUint = (s) => Base64.toUint8Array(s);
 var fromUint = (s) => Base64.fromUint8Array(new Uint8Array(s), true);
 
-async function initRegister(e) {
+async function login(e) {
   e.preventDefault();
   const username = document.getElementById('username').value;
   if (!username) {
     alert('Please enter a username');
     return;
   }
-  const creds = await fetch('/auth/register', {
+  const creds = await fetch('/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -31,30 +31,32 @@ async function initRegister(e) {
     .then((publicKey) => ({
       ...publicKey,
       challenge: toUint(publicKey.challenge),
-      user: {
-        ...publicKey.user,
-        id: toUint(publicKey.user.id),
-      },
+      allowCredentials: publicKey.allowCredentials?.map((listItem) => ({
+        ...listItem,
+        id: toUint(listItem.id),
+      }))
     }))
     .then((publicKey) => {
-      return navigator.credentials.create({
+      return navigator.credentials.get({
         publicKey,
       });
     })
-    .then((cred) => {
-      return fetch("/auth/validate-registration", {
+    .then((assertion) => {
+      return fetch("/auth/validate-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: cred.id,
-          rawId: fromUint(cred.rawId),
+          id: assertion.id,
+          rawId: fromUint(assertion.rawId),
+          type: assertion.type,
           response: {
-            attestationObject: fromUint(cred.response.attestationObject),
-            clientDataJSON: fromUint(cred.response.clientDataJSON),
+            authenticatorData: fromUint(assertion.response.authenticatorData),
+            clientDataJSON: fromUint(assertion.response.clientDataJSON),
+            signature: fromUint(assertion.response.signature),
+            userHandle: fromUint(assertion.response.userHandle),
           },
-          type: cred.type,
         }),
         redirect: 'follow', // doesn't seem to work
       })
