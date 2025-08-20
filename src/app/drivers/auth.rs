@@ -244,7 +244,7 @@ async fn post_validate_authen(
         })
     })?;
 
-    Ok(Redirect::to(""))
+    Ok(Redirect::to("/"))
 }
 
 #[derive(Deserialize, Debug)]
