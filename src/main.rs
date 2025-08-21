@@ -6,10 +6,11 @@ use crate::app::driven;
 use crate::app::drivers;
 use crate::core::services::{self, CreateServiceParams};
 use crate::infra::axum::start_server;
+use crate::infra::sqlx::create_sqlx;
+use crate::infra::tower_session::create_session_store;
 use axum::Router;
 use dotenv::dotenv;
 use tokio::sync::oneshot;
-use tower_sessions::MemoryStore;
 
 #[tokio::main]
 async fn main() {
@@ -17,8 +18,9 @@ async fn main() {
     tracing_subscriber::fmt::init();
     dotenv().expect("Failed to load .env");
     let (tx, rx) = oneshot::channel();
-    let session_store = MemoryStore::default();
     let shutdown_token = tokio_util::sync::CancellationToken::new();
+    let db = create_sqlx();
+    let session_store = create_session_store(db);
     let webauthn = infra::webauthn::create_authn();
     let (user_repo, auth_service) = driven::create_driven(webauthn);
     let user_service = services::create_services(CreateServiceParams { user_repo });

@@ -11,10 +11,12 @@ use tokio::signal;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
 use tower_http::{compression, services::ServeDir, trace};
-use tower_sessions::{SessionManagerLayer, SessionStore};
 use tracing::{info, info_span, Span};
 
-use crate::infra::error::{ApiError, AppError};
+use crate::infra::{
+    error::{ApiError, AppError},
+    tower_session::MySession,
+};
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response<axum::body::Body> {
@@ -87,11 +89,13 @@ pub async fn start_server(
     app: Router,
     tx: tokio::sync::oneshot::Sender<()>,
     shutdown_token: CancellationToken,
-    session_store: impl SessionStore + Clone,
+    session_store: impl MySession,
 ) {
+    session_store.run_migration().await.unwrap();
+    let session_layer = session_store.create_layer();
+
     // Initialize tracing
     tracing::info!("Starting Axum server...");
-    let session_layer = SessionManagerLayer::new(session_store).with_secure(false);
 
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
