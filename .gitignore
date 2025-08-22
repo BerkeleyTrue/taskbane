@@ -29,3 +29,4 @@ target/
 node_modules/
 public/css/
 .env
+data*

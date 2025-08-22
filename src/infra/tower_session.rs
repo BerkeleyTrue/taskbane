@@ -1,5 +1,4 @@
 use sqlx::SqlitePool;
-use tower::Layer;
 use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::SqliteStore;
 
