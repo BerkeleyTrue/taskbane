@@ -84,7 +84,8 @@ async fn get_register() -> Result<impl IntoResponse, AppError> {
 //
 // In this step, we are responding to the start registration request, and providing
 // the challenge to the browser.
-type SessionAuthState = (Uuid, String);
+type SessionAuthState = (Uuid, String, bool); // (user_id, username, is_authed)
+const SESSION_KEY: &str = "auth_state";
 
 #[derive(Deserialize)]
 struct RegistrationParams {
@@ -111,7 +112,10 @@ async fn post_start_registration(
     };
 
     session
-        .insert("auth_state", (user.id(), user.username()))
+        .insert(
+            SESSION_KEY,
+            (user.id(), user.username().to_string(), false) as SessionAuthState,
+        )
         .await
         .map_err(|_| ApiError::InternalServerError)?;
 
@@ -126,8 +130,8 @@ async fn post_validate_registration(
     }): State<AuthState>,
     Json(cred): Json<RegisterPublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
-    let (user_id, _) = session
-        .get::<SessionAuthState>("auth_state")
+    let (user_id, _, _) = session
+        .get::<SessionAuthState>(SESSION_KEY)
         .await
         .unwrap_or(None)
         .ok_or(ApiError::BadRequest {
@@ -194,10 +198,6 @@ async fn post_authenticate(
     }): State<AuthState>,
     Json(LoginParams { username }): Json<LoginParams>,
 ) -> Result<Json<RequestChallengeResponse>, ApiError> {
-    let _ = session
-        .remove::<SessionAuthState>("auth_state")
-        .await
-        .unwrap_or(None);
     let user = user_service.get_login(username).await.or_else(|err| {
         info!(err);
         return Err(ApiError::BadRequest {
@@ -213,7 +213,10 @@ async fn post_authenticate(
     })?;
 
     session
-        .insert("auth_state", (user.id().clone(), user.username()))
+        .insert(
+            SESSION_KEY,
+            (user.id().clone(), user.username().to_string(), false) as SessionAuthState,
+        )
         .await
         .or_else(|err| {
             info!("failed to save session: {:?}", err);
@@ -231,18 +234,29 @@ async fn post_validate_authen(
     }): State<AuthState>,
     Json(pkc): Json<PublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
-    let (user_id, _) = session
-        .get::<SessionAuthState>("auth_state")
+    let (user_id, username, _) = session
+        .get::<SessionAuthState>(SESSION_KEY)
         .await
         .unwrap_or(None)
         .ok_or(ApiError::InternalServerError)?;
 
-    auth_service.validate_login(&user_id, &pkc).await.or_else(|err| {
-        info!("Error validating login: {:?}", err);
-        return Err(ApiError::BadRequest {
-            message: "Failed to validate login".to_string(),
-        })
-    })?;
+    auth_service
+        .validate_login(&user_id, &pkc)
+        .await
+        .or_else(|err| {
+            info!("Error validating login: {:?}", err);
+            return Err(ApiError::BadRequest {
+                message: "Failed to validate login".to_string(),
+            });
+        })?;
+
+    session
+        .insert(SESSION_KEY, (user_id, username, true) as SessionAuthState)
+        .await
+        .or_else(|err| {
+            info!("Failed to save session: {:?}", err);
+            return Err(ApiError::InternalServerError);
+        })?;
 
     Ok(Redirect::to("/"))
 }
