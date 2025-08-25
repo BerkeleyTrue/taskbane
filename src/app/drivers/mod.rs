@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod home;
+pub mod task;
 
 use crate::app::driven::auth::AuthService;
 use crate::core::services;
@@ -21,6 +22,7 @@ pub fn create_drivers(params: CreateDriverParams) -> axum::Router {
         .merge(home::home_routes())
         .merge(auth::auth_routes(params.user_service, params.auth_service))
         .merge(livereload::live_reload(params.rx, params.shutdown_token))
+        .merge(task::task_routes())
 }
 
 async fn pong() -> &'static str {

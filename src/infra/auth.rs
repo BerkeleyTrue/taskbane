@@ -1,4 +1,7 @@
-use axum::{extract::FromRequestParts, http};
+use axum::{
+    extract::{FromRequestParts, Request},
+    http::{self}, middleware::Next, response::Response,
+};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use tracing::info;
@@ -27,13 +30,17 @@ where
             .get::<SessionAuthState>(SESSION_KEY)
             .await
             .unwrap_or(None)
-            .ok_or((http::StatusCode::BAD_REQUEST, "foo"))
+            .ok_or((http::StatusCode::BAD_REQUEST, "Failed to parse session"))
     }
 }
 
 impl SessionAuthState {
     pub fn new(user_id: &Uuid, username: String) -> Self {
-        SessionAuthState { user_id: user_id.clone(), username, is_authed: false }
+        SessionAuthState {
+            user_id: user_id.clone(),
+            username,
+            is_authed: false,
+        }
     }
 
     pub fn user_id(&self) -> Uuid {
@@ -57,11 +64,29 @@ impl SessionAuthState {
     }
 
     pub async fn update_session(&self, session: &Session) -> Result<Self, String> {
-        session.insert(SESSION_KEY, self.clone()).await.map_err(|e| {
-            info!("Failed to insert session: {}", e);
-            return "Failed to insert session".to_string();
-        })?;
+        session
+            .insert(SESSION_KEY, self.clone())
+            .await
+            .map_err(|e| {
+                info!("Failed to insert session: {}", e);
+                return "Failed to insert session".to_string();
+            })?;
 
         Ok(self.clone())
     }
+}
+
+pub async fn authentication_middlewared(
+    auth_state: SessionAuthState,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !auth_state.is_authed() {
+        return Response::builder()
+            .status(http::StatusCode::UNAUTHORIZED)
+            .body("Unauthorized".into())
+            .unwrap();
+    }
+
+    next.run(request).await
 }
