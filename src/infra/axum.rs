@@ -6,7 +6,6 @@ use axum::{
     response::{Html, IntoResponse},
     serve, Json, Router,
 };
-use serde::Serialize;
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
@@ -14,7 +13,7 @@ use tower_http::{compression, services::ServeDir, trace};
 use tracing::{info, info_span, Span};
 
 use crate::infra::{
-    error::{ApiError, AppError},
+    error::{ApiError, AppError, ErrorMessage},
     tower_session::MySession,
 };
 
@@ -41,44 +40,18 @@ impl IntoResponse for AppError {
     }
 }
 
-#[derive(Serialize)]
-struct ErrorMessage {
-    message: String,
-}
-
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response<axum::body::Body> {
         let (status, mess) = match &self {
-            ApiError::NotFound => (
-                StatusCode::NOT_FOUND,
-                ErrorMessage {
-                    message: self.to_string(),
-                },
-            ),
-            ApiError::Forbidden => (
-                StatusCode::FORBIDDEN,
-                ErrorMessage {
-                    message: self.to_string(),
-                },
-            ),
-            ApiError::BadRequest { message } => (
-                StatusCode::BAD_REQUEST,
-                ErrorMessage {
-                    message: message.to_string(),
-                },
-            ),
-            ApiError::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                ErrorMessage {
-                    message: self.to_string(),
-                },
-            ),
-            ApiError::InternalServerError => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                ErrorMessage {
-                    message: self.to_string(),
-                },
-            ),
+            ApiError::NotFound => (StatusCode::NOT_FOUND, ErrorMessage::from(self)),
+            ApiError::Forbidden => (StatusCode::FORBIDDEN, ErrorMessage::from(self)),
+            ApiError::BadRequest { message } => {
+                (StatusCode::BAD_REQUEST, ErrorMessage::new(message))
+            }
+            ApiError::Unauthorized => (StatusCode::UNAUTHORIZED, ErrorMessage::from(self)),
+            ApiError::InternalServerError => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ErrorMessage::from(self))
+            }
         };
 
         return (status, Json(mess)).into_response();

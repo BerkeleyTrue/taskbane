@@ -1,3 +1,4 @@
+use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -20,4 +21,25 @@ pub enum ApiError {
     Forbidden,
     #[error("Not found")]
     NotFound,
+}
+
+#[derive(Serialize)]
+pub struct ErrorMessage {
+    pub message: String,
+}
+
+impl ErrorMessage {
+    pub fn new(message: &str) -> Self {
+        ErrorMessage {
+            message: message.to_string(),
+        }
+    }
+}
+
+impl From<ApiError> for ErrorMessage {
+    fn from(err: ApiError) -> ErrorMessage {
+        ErrorMessage {
+            message: err.to_string()
+        }
+    }
 }
