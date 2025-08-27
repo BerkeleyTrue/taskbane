@@ -2,14 +2,23 @@ use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts, Request},
     http,
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Redirect, Response},
+    Json,
 };
+use axum_extra::TypedHeader;
+use headers_accept::Accept;
+use mediatype::{names, MediaType};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use tracing::info;
 use uuid::Uuid;
 
+use crate::infra::error::ErrorMessage;
+
 pub const SESSION_KEY: &str = "auth_state";
+const ACCEPT_JSON: MediaType = MediaType::new(names::APPLICATION, names::JSON);
+const ACCEPT_HTML: MediaType = MediaType::new(names::TEXT, names::HTML);
+const ACCEPT_LIST: &[MediaType; 2] = &[ACCEPT_JSON, ACCEPT_HTML];
 
 #[derive(Default, Deserialize, Serialize, Clone)]
 pub struct SessionAuthState {
@@ -116,16 +125,36 @@ where
     }
 }
 
+enum ResponseType {
+    Json,
+    Text,
+}
+
 pub async fn authentication_middlewared(
+    accept: Option<TypedHeader<Accept>>,
     auth_state: Option<SessionAuthState>,
     request: Request,
     next: Next,
 ) -> Response {
+    let format = accept
+        .and_then(|TypedHeader(accept)| accept.negotiate(ACCEPT_LIST))
+        .and_then(|media_type| {
+            if let ("application", "json") = (media_type.ty.as_str(), media_type.subty.as_str()) {
+                return Some(ResponseType::Json);
+            }
+            Some(ResponseType::Text)
+        })
+        .unwrap_or(ResponseType::Text);
+
     if auth_state.is_none() || !auth_state.unwrap().is_authed() {
-        return Response::builder()
-            .status(http::StatusCode::UNAUTHORIZED)
-            .body("Unauthorized".into())
-            .unwrap();
+        return match format {
+            ResponseType::Json => (
+                http::StatusCode::UNAUTHORIZED,
+                Json(ErrorMessage::new("unauthorized")),
+            )
+                .into_response(),
+            ResponseType::Text => Redirect::temporary("/login").into_response(),
+        };
     }
 
     next.run(request).await
