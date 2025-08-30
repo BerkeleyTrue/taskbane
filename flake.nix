@@ -6,7 +6,6 @@
 
     nixgl.url = "github:nix-community/nixGL";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    boulder.url = "github:berkeleytrue/nix-boulder-banner";
   };
 
   outputs = inputs @ {
@@ -15,15 +14,9 @@
     ...
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
-      imports = [
-        inputs.boulder.flakeModule
-      ];
+      imports = [];
       systems = ["x86_64-linux"];
-      perSystem = {
-        config,
-        system,
-        ...
-      }: let
+      perSystem = {system, ...}: let
         pkgs = import nixpkgs {
           inherit system;
 
@@ -32,36 +25,14 @@
         };
       in {
         formatter.default = pkgs.alejandra;
-        boulder.commands = [
-          {
-            exec = pkgs.writeShellScriptBin "run" ''
-              cargo run
-            '';
-            description = "cargo run";
-          }
-          {
-            exec = pkgs.writeShellScriptBin "build" ''
-              cargo build
-            '';
-            description = "cargo build";
-          }
-          {
-            exec = pkgs.writeShellScriptBin "watch" ''
-              cargo watch -x run
-            '';
-            description = "cargo watch -x run";
-          }
-        ];
         devShells.default = pkgs.mkShell {
-          name = "rust";
-          inputsFrom = [
-            config.boulder.devShell
-          ];
+          name = "taskbane";
 
           buildInputs = with pkgs; [
             cargo
             cargo-generate
             rustc
+            sqlx-cli
             pnpm
             tailwindcss_4
             openssl
@@ -69,6 +40,19 @@
             # rustup
             # rustfmt
           ];
+
+          shellHook = ''
+            function menu () {
+              echo
+              echo -e "\033[1;34m>==> ️  '$name' shell\n\033[0m"
+              just --list
+              echo
+              echo "(Run 'just --list' to display this menu again)"
+              echo
+            }
+
+            menu
+          '';
         };
       };
       flake = {};
