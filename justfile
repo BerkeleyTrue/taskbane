@@ -29,3 +29,7 @@ migrate-revert:
 [group('db')]
 migrate-status:
   sqlx migrate info --database-url "$DB_URL"
+
+[group('db')]
+prepare:
+  cargo sqlx prepare --database-url "$DB_URL"
