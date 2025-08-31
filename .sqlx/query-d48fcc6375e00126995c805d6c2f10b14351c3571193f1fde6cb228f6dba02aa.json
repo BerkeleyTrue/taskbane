@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "username",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d48fcc6375e00126995c805d6c2f10b14351c3571193f1fde6cb228f6dba02aa"
+}

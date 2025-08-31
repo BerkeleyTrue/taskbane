@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO users (id, username)\n            VALUES (?, ?)\n            RETURNING id as `id:uuid::Uuid`, username\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "username",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "de473f75dc2a60791e80072f42a696c665e8f847c3a40877358df6e2e3429994"
+}
