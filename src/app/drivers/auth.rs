@@ -47,9 +47,13 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "register.html")]
-struct RegisterTemplate {}
+struct RegisterTemplate {
+    is_authed: bool,
+}
 async fn get_register() -> Result<impl IntoResponse, AppError> {
-    let template = RegisterTemplate {};
+    let template = RegisterTemplate {
+        is_authed: false,
+    };
     Ok(Html(template.render()?))
 }
 
@@ -138,9 +142,13 @@ async fn post_validate_registration(
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "login.html")]
-struct LoginTemplate {}
+struct LoginTemplate {
+    is_authed: bool,
+}
 async fn get_login() -> Result<impl IntoResponse, AppError> {
-    let template = LoginTemplate {};
+    let template = LoginTemplate {
+        is_authed: false,
+    };
     Ok(Html(template.render()?))
 }
 

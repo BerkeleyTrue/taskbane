@@ -23,6 +23,7 @@ impl IntoResponse for AppError {
         #[template(path = "error.html")]
         struct Tmpl {
             err: AppError,
+            is_authed: bool,
         }
 
         let status = match &self {
@@ -30,7 +31,7 @@ impl IntoResponse for AppError {
             AppError::Render(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
-        let tmpl = Tmpl { err: self };
+        let tmpl = Tmpl { err: self, is_authed: false };
 
         if let Ok(body) = tmpl.render() {
             (status, Html(body)).into_response()

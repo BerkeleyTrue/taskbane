@@ -1,10 +1,14 @@
+use askama::Template;
 use axum::{
     middleware,
     response::{IntoResponse, Redirect},
     routing, Router,
 };
 
-use crate::infra::{auth::authentication_middlewared, error::AppError};
+use crate::infra::{
+    auth::{authentication_middlewared, SessionAuthState},
+    error::AppError,
+};
 
 pub fn task_routes() -> axum::Router {
     Router::new()
@@ -16,6 +20,15 @@ pub fn task_routes() -> axum::Router {
         .layer(middleware::from_fn(authentication_middlewared))
 }
 
-pub async fn get_task() -> Result<impl IntoResponse, AppError> {
-    Ok("Get Task")
+#[derive(Debug, Clone, Template)]
+#[template(path = "task.html")]
+struct TaskPage {
+    is_authed: bool,
+}
+
+pub async fn get_task(auth_state: SessionAuthState) -> Result<impl IntoResponse, AppError> {
+    let templ = TaskPage {
+        is_authed: auth_state.is_authed(),
+    };
+    Ok(axum::response::Html(templ.render()?))
 }
