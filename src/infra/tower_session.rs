@@ -17,6 +17,6 @@ impl MySession for SqliteStore {
     }
 }
 
-pub fn create_session_store(pool: SqlitePool) -> SqliteStore {
-    SqliteStore::new(pool)
+pub fn create_session_store(pool: &SqlitePool) -> SqliteStore {
+    SqliteStore::new(pool.clone())
 }

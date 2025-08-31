@@ -1,10 +1,11 @@
 use serde::Serialize;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, FromRow)]
 pub struct User {
-    id: Uuid,
-    username: String,
+    pub id: Uuid,
+    pub username: String,
 }
 
 impl PartialEq for User {

@@ -1,80 +1,93 @@
 use crate::core::{models::User, ports::user as port};
 use async_trait::async_trait;
+use sqlx::SqlitePool;
+use std::sync::Arc;
 use uuid::Uuid;
-use std::{collections::HashMap, sync::Arc};
-use tokio::sync::Mutex;
 
-pub struct UserStore {
-    users: HashMap<Uuid, User>,
-}
-
-pub struct UserMemRepo {
-    store: Arc<Mutex<UserStore>>,
+pub struct UserSqlRepo {
+    pool: SqlitePool,
 }
 
 #[async_trait]
-impl port::UserRepository for UserMemRepo {
+impl port::UserRepository for UserSqlRepo {
     async fn add(&self, create_user: port::CreateUser) -> Result<User, String> {
-        let mut store = self.store.lock().await;
         let new_user_id = create_user.id.clone();
-        let existing_user = store.users.iter().any(move |(uuid, _)| {
-            uuid.clone() == new_user_id
-        });
+        let existing_user = sqlx::query_as!(
+            User,
+            r#"SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?"#,
+            new_user_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| err.to_string())?
+        .is_some();
 
         if existing_user {
             return Err("User with username already exists".to_string());
         }
 
         let user = User::new(create_user.id, create_user.username);
-        let user_clone = user.clone();
-        store.users.insert(create_user.id, user_clone);
+        let username_copy = user.username();
+        sqlx::query!(
+            r#"
+            INSERT INTO users (id, username)
+            VALUES (?, ?)
+            RETURNING id as `id:uuid::Uuid`, username
+        "#,
+            new_user_id,
+            username_copy,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|err| err.to_string())?;
 
         Ok(user)
     }
 
     async fn get(&self, id: Uuid) -> Result<User, String> {
-        let store = self.store.lock().await;
-
-        let Some(user) = store.users.get(&id) else {
-            return Err("User not found".to_string());
-        };
-
-        Ok(user.clone())
+        sqlx::query_as!(User, "SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .ok_or("User not found".to_string())
     }
 
     async fn get_by_username(&self, username: String) -> Option<User> {
-        let store = self.store.lock().await;
-        let Some((_, user)) = store.users.iter().find(|(_, user)| {
-            return user.username() == username;
-        }) else {
-            return None;
-        };
-        Some(user.clone())
+        sqlx::query_as!(
+            User,
+            "SELECT id as `id:uuid::Uuid`, username FROM users WHERE username == ?",
+            username
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap_or(None)
     }
 
     async fn update(&self, user: port::UpdateUser) -> Result<(), String> {
-        let mut store = self.store.lock().await;
-
-        if let Some(existing_user) = store.users.get_mut(&user.id) {
-            existing_user.with_username(user.username);
-            Ok(())
-        } else {
-            Err("User not found".to_string())
-        }
+        sqlx::query!(
+            r#"
+                UPDATE users
+                SET username = ?
+                WHERE id = ?
+            "#,
+            user.username,
+            user.id,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|err| err.to_string())
+        .map(|_| ())
     }
 
     async fn delete(&self, id: Uuid) -> Result<(), String> {
-        let mut store = self.store.lock().await;
-        if let Some(_) = store.users.remove(&id) {
-            Ok(())
-        } else {
-            Err("User not found".to_string())
-        }
+        sqlx::query!("DELETE FROM users WHERE id = ?", id)
+            .execute(&self.pool)
+            .await
+            .map_err(|err| err.to_string())
+            .map(|_| ())
     }
 }
 
-pub fn create_user_repo() -> Arc<UserMemRepo> {
-    Arc::new(UserMemRepo {
-        store: Arc::new(Mutex::new(UserStore { users: HashMap::new() })),
-    })
+pub fn create_user_repo(pool: &SqlitePool) -> Arc<UserSqlRepo> {
+    Arc::new(UserSqlRepo { pool: pool.clone() })
 }
