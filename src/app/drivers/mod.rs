@@ -4,6 +4,7 @@ pub mod task;
 
 use crate::app::driven::auth::AuthService;
 use crate::core::services;
+use crate::core::services::task::TaskService;
 use crate::infra::livereload;
 use axum::routing::get;
 use tokio_util::sync::CancellationToken;
@@ -14,6 +15,7 @@ pub struct CreateDriverParams {
     pub shutdown_token: CancellationToken,
     pub user_service: services::user::UserService,
     pub auth_service: AuthService,
+    pub task_service: TaskService,
 }
 
 pub fn create_drivers(params: CreateDriverParams) -> axum::Router {
@@ -22,7 +24,7 @@ pub fn create_drivers(params: CreateDriverParams) -> axum::Router {
         .merge(home::home_routes())
         .merge(auth::auth_routes(params.user_service, params.auth_service))
         .merge(livereload::live_reload(params.rx, params.shutdown_token))
-        .merge(task::task_routes())
+        .merge(task::task_routes(params.task_service))
 }
 
 async fn pong() -> &'static str {

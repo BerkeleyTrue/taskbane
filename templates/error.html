@@ -22,6 +22,7 @@
 
   {%- match err -%}
     {% when AppError::NotFound -%}
+    {% when AppError::InternalServerError -%}
     {% when AppError::Render(err) -%}
     <pre>{{ err }}</pre>
   {%- endmatch -%}

@@ -29,6 +29,7 @@ impl IntoResponse for AppError {
         let status = match &self {
             AppError::NotFound => StatusCode::NOT_FOUND,
             AppError::Render(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let tmpl = Tmpl { err: self, is_authed: false };

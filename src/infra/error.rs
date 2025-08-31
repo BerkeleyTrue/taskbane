@@ -7,6 +7,8 @@ pub enum AppError {
     NotFound,
     #[error("Failed to rendered template")]
     Render(#[from] askama::Error),
+    #[error("Internal Server Error")]
+    InternalServerError
 }
 
 #[derive(Debug, thiserror::Error)]

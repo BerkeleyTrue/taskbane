@@ -23,7 +23,7 @@ async fn main() {
     let session_store = create_session_store(&pool);
     let webauthn = infra::webauthn::create_authn();
     let (user_repo, auth_service) = driven::create_driven(&pool, webauthn);
-    let user_service = services::create_services(CreateServiceParams { user_repo });
+    let (user_service, task_service) = services::create_services(CreateServiceParams { user_repo });
 
     // build our application with a route
     let app = Router::new();
@@ -33,6 +33,7 @@ async fn main() {
         shutdown_token: shutdown_token.clone(),
         user_service,
         auth_service,
+        task_service,
     });
 
     start_server(app, tx, shutdown_token, session_store).await;
