@@ -4,15 +4,15 @@ default:
 
 [group('rust')]
 run:
-  cargo run
+  DATABASE_URL="$DB_URL" cargo run
 
 [group('rust')]
 build:
-  cargo build
+  DATABASE_URL="$DB_URL" cargo build
 
 [group('rust')]
 watch:
-  cargo watch -x run
+  DATABASE_URL="$DB_URL" cargo watch -x run
 
 [group('db')]
 migrate:
@@ -32,4 +32,4 @@ migrate-status:
 
 [group('db')]
 prepare:
-  cargo sqlx prepare --database-url "$DB_URL"
+  DATABASE_URL="$DB_URL" cargo sqlx prepare --database-url "$DB_URL"
