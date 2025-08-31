@@ -1,11 +1,11 @@
 use askama::Template;
 use axum::extract::State;
 use axum::response::{Html, IntoResponse, Redirect};
+use axum::{middleware, Form, Router};
 use axum::{
     routing::{get, post},
     Json,
 };
-use axum::{Form, Router};
 use serde::Deserialize;
 use tower_sessions::Session;
 use tracing::info;
@@ -15,7 +15,7 @@ use webauthn_rs::prelude::{
 };
 
 use crate::app::driven::auth::AuthService;
-use crate::infra::auth::SessionAuthState;
+use crate::infra::auth::{authenticed_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
 use crate::services::user::UserService;
 
@@ -37,6 +37,8 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
         .route("/auth/login", post(post_authenticate))
         .route("/auth/validate-login", post(post_validate_authen))
         .route("/auth/username_validation", get(username_validation))
+        // redirect authenticated users to task
+        .layer(middleware::from_fn(authenticed_middleware))
         .with_state(AuthState {
             user_service,
             auth_service,
@@ -215,7 +217,6 @@ async fn post_validate_authen(
     }): State<AuthState>,
     Json(pkc): Json<PublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
-
     auth_service
         .validate_login(&session_auth.user_id(), &pkc)
         .await
@@ -226,12 +227,13 @@ async fn post_validate_authen(
             });
         })?;
 
-    session_auth.update_is_authed(true)
+    session_auth
+        .update_is_authed(true)
         .update_session(&session)
         .await
         .or(Err(ApiError::InternalServerError))?;
 
-    Ok(Redirect::to("/"))
+    Ok(Redirect::to("/task"))
 }
 
 #[derive(Deserialize, Debug)]

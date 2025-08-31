@@ -146,7 +146,7 @@ pub async fn authentication_middlewared(
         })
         .unwrap_or(ResponseType::Text);
 
-    if auth_state.is_none() || !auth_state.unwrap().is_authed() {
+    if auth_state.is_none_or(|auth| !auth.is_authed()) {
         return match format {
             ResponseType::Json => (
                 http::StatusCode::UNAUTHORIZED,
@@ -157,5 +157,16 @@ pub async fn authentication_middlewared(
         };
     }
 
+    next.run(request).await
+}
+
+pub async fn authenticed_middleware(
+    auth_state: Option<SessionAuthState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if auth_state.is_some_and(|auth| auth.is_authed()) {
+        return Redirect::temporary("/task").into_response();
+    }
     next.run(request).await
 }

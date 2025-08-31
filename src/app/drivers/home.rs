@@ -1,14 +1,17 @@
 use askama::Template;
 use axum::{
+    middleware,
     response::{Html, IntoResponse},
     routing::get,
     Router,
 };
 
-use crate::infra::error::AppError;
+use crate::infra::{auth::authenticed_middleware, error::AppError};
 
 pub fn home_routes() -> axum::Router {
-    Router::new().route("/", get(get_home))
+    Router::new()
+        .route("/", get(get_home))
+        .layer(middleware::from_fn(authenticed_middleware))
 }
 
 #[derive(Debug, Clone, Template)]
