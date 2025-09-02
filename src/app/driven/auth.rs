@@ -185,6 +185,7 @@ impl AuthRepository for AuthSqlRepo {
                 UPDATE auth
                 SET authentication = ?, registration = NULL
                 WHERE user_id = ?
+                RETURNING user_id as `user_id:uuid::Uuid`
             "#,
             pka_json,
             user_id,
