@@ -22,11 +22,13 @@ async fn main() {
     let pool = create_sqlx();
     let session_store = create_session_store(&pool);
     let webauthn = infra::webauthn::create_authn();
-    let (user_repo, auth_repo) = driven::create_driven(&pool);
+    let task_storage = infra::task::create_task_storage();
+    let (user_repo, auth_repo, task_repo) = driven::create_driven(&pool, task_storage);
     let (user_service, task_service, auth_service) =
         services::create_services(CreateServiceParams {
             user_repo,
             auth_repo,
+            task_repo,
             webauthn,
         });
 
