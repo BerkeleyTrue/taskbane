@@ -2,9 +2,7 @@ pub mod auth;
 pub mod home;
 pub mod task;
 
-use crate::core::services;
-use crate::core::services::auth::AuthService;
-use crate::core::services::task::TaskService;
+use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::livereload;
 use axum::routing::get;
 use tokio_util::sync::CancellationToken;
@@ -13,7 +11,7 @@ pub struct CreateDriverParams {
     pub app: axum::Router,
     pub rx: tokio::sync::oneshot::Receiver<()>,
     pub shutdown_token: CancellationToken,
-    pub user_service: services::user::UserService,
+    pub user_service: UserService,
     pub auth_service: AuthService,
     pub task_service: TaskService,
 }

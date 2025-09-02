@@ -9,7 +9,7 @@ use taskchampion::Task;
 use tracing::info;
 
 use crate::{
-    core::services::task::TaskService,
+    core::services::TaskService,
     infra::{
         auth::{authentication_middlewared, SessionAuthState},
         error::AppError,

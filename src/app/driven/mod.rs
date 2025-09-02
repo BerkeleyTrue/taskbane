@@ -1,5 +1,5 @@
-pub mod auth;
-pub mod user;
+mod auth;
+mod user;
 
 use std::sync::Arc;
 

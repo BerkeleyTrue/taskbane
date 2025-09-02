@@ -14,10 +14,9 @@ use webauthn_rs::prelude::{
     RequestChallengeResponse,
 };
 
-use crate::core::services::auth::AuthService;
+use crate::core::services::{AuthService, UserService};
 use crate::infra::auth::{authenticed_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
-use crate::services::user::UserService;
 
 #[derive(Clone)]
 struct AuthState {
@@ -51,9 +50,7 @@ struct RegisterTemplate {
     is_authed: bool,
 }
 async fn get_register() -> Result<impl IntoResponse, AppError> {
-    let template = RegisterTemplate {
-        is_authed: false,
-    };
+    let template = RegisterTemplate { is_authed: false };
     Ok(Html(template.render()?))
 }
 
@@ -146,9 +143,7 @@ struct LoginTemplate {
     is_authed: bool,
 }
 async fn get_login() -> Result<impl IntoResponse, AppError> {
-    let template = LoginTemplate {
-        is_authed: false,
-    };
+    let template = LoginTemplate { is_authed: false };
     Ok(Html(template.render()?))
 }
 

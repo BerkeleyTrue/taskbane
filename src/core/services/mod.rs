@@ -1,12 +1,16 @@
-pub mod auth;
-pub mod task;
-pub mod user;
+mod auth;
+mod task;
+mod user;
 
 use std::sync::Arc;
 
 use webauthn_rs::Webauthn;
 
 use crate::core::ports;
+
+pub use auth::AuthService;
+pub use user::UserService;
+pub use task::TaskService;
 
 pub struct CreateServiceParams {
     pub user_repo: Arc<dyn ports::UserRepository>,
