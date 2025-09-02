@@ -12,7 +12,7 @@ use webauthn_rs::{
 
 use crate::core::{
     models::{User, UserAuth},
-    ports::auth::AuthRepository,
+    ports::AuthRepository,
 };
 
 #[derive(Clone)]

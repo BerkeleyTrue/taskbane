@@ -1,4 +1,4 @@
-use crate::core::{models::User, ports::user as port};
+use crate::core::{models::User, ports::UserRepository};
 use async_trait::async_trait;
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -9,9 +9,9 @@ pub struct UserSqlRepo {
 }
 
 #[async_trait]
-impl port::UserRepository for UserSqlRepo {
-    async fn add(&self, create_user: port::CreateUser) -> Result<User, String> {
-        let new_user_id = create_user.id.clone();
+impl UserRepository for UserSqlRepo {
+    async fn add(&self, id: Uuid, username: String) -> Result<User, String> {
+        let new_user_id = id.clone();
         let existing_user = sqlx::query_as!(
             User,
             r#"SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?"#,
@@ -26,7 +26,7 @@ impl port::UserRepository for UserSqlRepo {
             return Err("User with username already exists".to_string());
         }
 
-        let user = User::new(create_user.id, create_user.username);
+        let user = User::new(id, username);
         let username_copy = user.username();
         sqlx::query!(
             r#"
@@ -67,15 +67,15 @@ impl port::UserRepository for UserSqlRepo {
         .unwrap_or(None)
     }
 
-    async fn update(&self, user: port::UpdateUser) -> Result<(), String> {
+    async fn update(&self, id: Uuid, username: String) -> Result<(), String> {
         sqlx::query!(
             r#"
                 UPDATE users
                 SET username = ?
                 WHERE id = ?
             "#,
-            user.username,
-            user.id,
+            username,
+            id,
         )
         .fetch_one(&self.pool)
         .await

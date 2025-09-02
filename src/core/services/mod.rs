@@ -9,8 +9,8 @@ use webauthn_rs::Webauthn;
 use crate::core::ports;
 
 pub struct CreateServiceParams {
-    pub user_repo: Arc<dyn ports::user::UserRepository>,
-    pub auth_repo: Arc<dyn ports::auth::AuthRepository>,
+    pub user_repo: Arc<dyn ports::UserRepository>,
+    pub auth_repo: Arc<dyn ports::AuthRepository>,
     pub webauthn: Arc<Webauthn>,
 }
 

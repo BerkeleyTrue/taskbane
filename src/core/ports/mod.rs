@@ -1,3 +1,6 @@
-pub mod user;
-pub mod task;
-pub mod auth;
+mod user;
+mod task;
+mod auth;
+
+pub use auth::AuthRepository;
+pub use user::UserRepository;
