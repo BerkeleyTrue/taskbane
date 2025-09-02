@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use tracing::info;
 use uuid::Uuid;
 use webauthn_rs::{
     prelude::{
@@ -30,24 +29,15 @@ impl AuthService {
         &self,
         user: User,
     ) -> Result<CreationChallengeResponse, String> {
-        match self.webauthn.start_passkey_registration(
-            user.id(),
-            user.username(),
-            user.username(),
-            None,
-        ) {
-            Ok((ccr, registration)) => {
-                let user_auth = UserAuth::new(user.id().clone(), registration);
+        let (ccr, registration) = self
+            .webauthn
+            .start_passkey_registration(user.id(), user.username(), user.username(), None)
+            .map_err(|err| err.to_string())?;
 
-                self.repo.add(user_auth).await?;
-                Ok(ccr)
-            }
+        let user_auth = UserAuth::new(user.id().clone(), registration);
 
-            Err(e) => {
-                info!("register error {:?}", e);
-                Err("Failed to register user".to_string())
-            }
-        }
+        self.repo.add(user_auth).await?;
+        Ok(ccr)
     }
 
     pub async fn validate_registration(
@@ -56,26 +46,24 @@ impl AuthService {
         cred: &RegisterPublicKeyCredential,
     ) -> Result<(), String> {
         let reg = self.repo.get_registration(user_id).await?;
-        match self.webauthn.finish_passkey_registration(cred, &reg) {
-            Ok(pk) => {
-                self.repo.update_passkey(user_id, pk).await?;
-                return Ok(());
-            }
-            Err(e) => {
-                info!("validating registration {:?}", e);
-                return Err("Error validating registration".to_string());
-            }
-        }
+
+        let pk = self
+            .webauthn
+            .finish_passkey_registration(cred, &reg)
+            .map_err(|err| err.to_string())?;
+
+        self.repo.update_passkey(user_id, pk).await?;
+
+        Ok(())
     }
 
     pub async fn login(&self, user_id: &Uuid) -> Result<RequestChallengeResponse, String> {
         let passkeys = self.repo.get_passkeys(user_id).await?;
+
         let (rcr, pka) = self
             .webauthn
             .start_passkey_authentication(&passkeys)
-            .or_else(|err| {
-                return Err(err.to_string());
-            })?;
+            .map_err(|err| err.to_string())?;
 
         self.repo.update_authen(user_id, pka).await?;
 
@@ -93,7 +81,9 @@ impl AuthService {
             .webauthn
             .finish_passkey_authentication(pkc, &pka)
             .or_else(|err| Err(err.to_string()))?;
+
         self.repo.update_credentials(user_id, credentials).await?;
+
         Ok(())
     }
 }
