@@ -15,6 +15,7 @@ use crate::core::{
     ports::AuthRepository,
 };
 
+#[derive(Debug)]
 struct AuthStateDb {
     user_id: Uuid,
     passkeys: String,
@@ -48,17 +49,17 @@ pub struct AuthSqlRepo {
 impl AuthRepository for AuthSqlRepo {
     async fn add(&self, auth: UserAuth) -> Result<UserAuth, String> {
         let user_id = auth.user_id().clone();
-        let existing_auth = sqlx::query_as!(
-            AuthStateDb, 
+        let existing_auth = sqlx::query!(
             r#"
-                SELECT user_id as `user_id:uuid::Uuid`, registration, passkeys, authentication  FROM auth
+                SELECT registration FROM auth
                 WHERE user_id = ?
             "#,
             user_id
         )
             .fetch_optional(&self.pool)
             .await
-            .is_ok();
+            .map_err(|err| err.to_string())?
+            .is_some();
 
         if existing_auth {
             return Err("Existing Challenge for user".to_string());
@@ -68,13 +69,14 @@ impl AuthRepository for AuthSqlRepo {
         let registration = auth.registration().and_then(|r| serde_json::to_string(&r).ok());
         sqlx::query!(
             r#"
-                INSERT INTO auth (user_id, registration, authentication)
-                VALUES (?, ?, ?)
+                INSERT INTO auth (user_id, registration, authentication, passkeys)
+                VALUES (?, ?, ?, ?)
                 returning user_id as `user_id:uuid::Uuid`
             "#,
             user_id,
             registration,
             None::<String>,
+            "[]",
         )
             .fetch_one(&self.pool)
             .await
