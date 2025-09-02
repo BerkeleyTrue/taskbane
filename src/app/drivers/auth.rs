@@ -14,7 +14,7 @@ use webauthn_rs::prelude::{
     RequestChallengeResponse,
 };
 
-use crate::app::driven::auth::AuthService;
+use crate::core::services::auth::AuthService;
 use crate::infra::auth::{authenticed_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
 use crate::services::user::UserService;

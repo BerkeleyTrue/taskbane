@@ -45,11 +45,15 @@ impl port::UserRepository for UserSqlRepo {
     }
 
     async fn get(&self, id: Uuid) -> Result<User, String> {
-        sqlx::query_as!(User, "SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?", id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|err| err.to_string())?
-            .ok_or("User not found".to_string())
+        sqlx::query_as!(
+            User,
+            "SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?",
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| err.to_string())?
+        .ok_or("User not found".to_string())
     }
 
     async fn get_by_username(&self, username: String) -> Option<User> {

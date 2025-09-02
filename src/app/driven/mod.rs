@@ -4,16 +4,14 @@ pub mod user;
 use std::sync::Arc;
 
 use sqlx::SqlitePool;
-use webauthn_rs::Webauthn;
 
-use crate::core::ports::user as port;
+use crate::core::ports;
 
 pub fn create_driven(
-    pool: &SqlitePool,
-    webauthn: Arc<Webauthn>,
-) -> (Arc<dyn port::UserRepository>, auth::AuthService) {
+    pool: &SqlitePool
+) -> (Arc<dyn ports::user::UserRepository>, Arc<dyn ports::auth::AuthRepository>) {
     (
         user::create_user_repo(pool),
-        auth::create_auth_service(webauthn),
+        auth::create_auth_repo(pool),
     )
 }

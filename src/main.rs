@@ -22,8 +22,13 @@ async fn main() {
     let pool = create_sqlx();
     let session_store = create_session_store(&pool);
     let webauthn = infra::webauthn::create_authn();
-    let (user_repo, auth_service) = driven::create_driven(&pool, webauthn);
-    let (user_service, task_service) = services::create_services(CreateServiceParams { user_repo });
+    let (user_repo, auth_repo) = driven::create_driven(&pool);
+    let (user_service, task_service, auth_service) =
+        services::create_services(CreateServiceParams {
+            user_repo,
+            auth_repo,
+            webauthn,
+        });
 
     // build our application with a route
     let app = Router::new();

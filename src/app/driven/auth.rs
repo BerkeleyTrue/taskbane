@@ -1,132 +1,159 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{sync::Arc};
 
 use async_trait::async_trait;
-use tokio::sync::Mutex;
-use tracing::info;
+use sqlx::{self, SqlitePool};
 use uuid::Uuid;
 use webauthn_rs::{
     prelude::{
-        AuthenticationResult, CreationChallengeResponse, Passkey, PasskeyAuthentication, PasskeyRegistration, PublicKeyCredential, RegisterPublicKeyCredential, RequestChallengeResponse
+        AuthenticationResult, Passkey, PasskeyAuthentication,
+        PasskeyRegistration,
     },
-    Webauthn,
 };
 
-use crate::core::models::User;
+use crate::core::{
+    models::UserAuth,
+    ports::auth::AuthRepository,
+};
 
-#[derive(Debug, Clone)]
-pub struct UserAuth {
-    registration: Option<PasskeyRegistration>,
-    authentication: Option<PasskeyAuthentication>,
-    passkeys: Vec<Passkey>,
+struct AuthStateDb {
     user_id: Uuid,
+    passkeys: String,
+    registration: Option<String>,
+    authentication: Option<String>,
 }
 
-impl UserAuth {
-    pub fn new(user_id: Uuid, registration: PasskeyRegistration) -> Self {
-        UserAuth {
-            user_id,
-            registration: Some(registration),
-            authentication: None,
-            passkeys: Vec::new(),
+impl From<AuthStateDb> for UserAuth {
+    fn from(value: AuthStateDb) -> Self {
+        let registration = value.registration.and_then(|r| {
+            serde_json::from_str::<PasskeyRegistration>(&r).ok()
+        });
+        let authentication = value.authentication.and_then(|a| {
+            serde_json::from_str::<PasskeyAuthentication>(&a).ok()
+        });
+        let passkeys = serde_json::from_str::<Vec<Passkey>>(&value.passkeys).unwrap_or(Vec::new());
+        Self {
+            user_id: value.user_id,
+            passkeys,
+            registration,
+            authentication,
         }
     }
-
-    pub fn user_id(&self) -> Uuid {
-        self.user_id
-    }
-    pub fn registration(&self) -> Option<PasskeyRegistration> {
-        self.registration.clone()
-    }
-    pub fn authentication(&self) -> Option<PasskeyAuthentication> {
-        self.authentication.clone()
-    }
-    pub fn passkey(&self) -> Vec<Passkey> {
-        self.passkeys.clone()
-    }
 }
 
-#[derive(Debug)]
-pub struct AuthStore {
-    auths: std::collections::HashMap<Uuid, UserAuth>,
+pub struct AuthSqlRepo {
+    pool: SqlitePool,
 }
 
 #[async_trait]
-pub trait AuthRepository: Send + Sync {
-    async fn add(&self, stored_challenge: UserAuth) -> Result<UserAuth, String>;
-    async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration, String>;
-
-    async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String>;
-    async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>, String>;
-
-    async fn update_authen(&self, user_id: &Uuid, pka: PasskeyAuthentication)
-        -> Result<(), String>;
-    async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication, String>;
-    async fn update_credentials(&self, user_id: &Uuid, credentials: AuthenticationResult) -> Result<(), String>;
-}
-
-struct AuthMemRepo {
-    store: Arc<Mutex<AuthStore>>,
-}
-
-#[async_trait]
-impl AuthRepository for AuthMemRepo {
+impl AuthRepository for AuthSqlRepo {
     async fn add(&self, auth: UserAuth) -> Result<UserAuth, String> {
-        let mut store = self.store.lock().await;
         let user_id = auth.user_id().clone();
-        let existing_auth = store
-            .auths
-            .iter()
-            .any(move |(uuid, _)| uuid.clone() == user_id);
+        let existing_auth = sqlx::query_as!(
+            AuthStateDb, 
+            r#"
+                SELECT user_id as `user_id:uuid::Uuid`, registration, passkeys, authentication  FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .is_ok();
 
         if existing_auth {
             return Err("Existing Challenge for user".to_string());
         }
 
-        let auth_clone = auth.clone();
-        store.auths.insert(auth_clone.user_id(), auth_clone);
-        Ok(auth.clone())
+        let user_id = auth.user_id();
+        let registration = auth.registration().and_then(|r| serde_json::to_string(&r).ok());
+        sqlx::query!(
+            r#"
+                INSERT INTO auth (user_id, registration, authentication)
+                VALUES (?, ?, ?)
+                returning user_id as `user_id:uuid::Uuid`
+            "#,
+            user_id,
+            registration,
+            None::<String>,
+        )
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?;
+
+        Ok(auth)
     }
 
     async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration, String> {
-        let store = self.store.lock().await;
         let user_id_clone = user_id.clone();
 
-        let Some((_, user_auth)) = store
-            .auths
-            .iter()
-            .find(|(&u_id, _)| user_id_clone == u_id.clone())
-        else {
-            return Err(format!("No auth found for {:?}", user_id.to_string()));
+        let maybe_registration = sqlx::query!(
+            r#"
+                SELECT registration FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id_clone,
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .and_then(|r| r.registration)
+            .and_then(|r| serde_json::from_str::<PasskeyRegistration>(&r).ok());
+
+        let Some(registration) = maybe_registration else {
+            return Err(format!("No registration found for {:?}", user_id.to_string()));
         };
 
-        let Some(reg) = user_auth.registration() else {
-            return Err("No auth found for user".to_string());
-        };
-
-        Ok(reg)
+        Ok(registration)
     }
 
     async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>, String> {
-        let store = self.store.lock().await;
-        let user_auth = store
-            .auths
-            .get(user_id)
-            .ok_or("No auth found for user".to_string())?;
-        Ok(user_auth.passkeys.clone())
+        sqlx::query!(
+            r#"
+                SELECT passkeys FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .map(|r| r.passkeys)
+            .and_then(|pks| serde_json::from_str::<Vec<Passkey>>(&pks).ok())
+            .ok_or("No passkeys found for user".to_string())
     }
 
     async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String> {
-        let mut store = self.store.lock().await;
+        let mut passkeys = sqlx::query!(
+            r#"
+                SELECT passkeys FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id,
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .map(|record| record.passkeys)
+            .ok_or("No auth found for user".to_string())
+            .and_then(|psk_str| serde_json::from_str::<Vec<Passkey>>(&psk_str).map_err(|err| err.to_string()))?;
 
-        let Some(user_auth) = store.auths.get(user_id) else {
-            return Err("No auth found for user".to_string());
-        };
-        let mut user_auth = user_auth.clone();
+        passkeys.push(pk);
 
-        user_auth.passkeys.push(pk);
-        user_auth.registration = None;
+        let passkeys_json = serde_json::to_string(&passkeys).map_err(|err| err.to_string())?;
 
-        store.auths.insert(user_id.clone(), user_auth);
+        sqlx::query!(
+            r#"
+                UPDATE auth
+                SET passkeys = ?, registration = NULL
+                WHERE user_id = ?
+            "#,
+            passkeys_json,
+            user_id,
+        )   
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?;
+
         Ok(())
     }
 
@@ -135,134 +162,97 @@ impl AuthRepository for AuthMemRepo {
         user_id: &Uuid,
         pka: PasskeyAuthentication,
     ) -> Result<(), String> {
-        let mut store = self.store.lock().await;
-        let mut user_auth = store.auths.get(user_id).ok_or("No auth found for user".to_string())?.clone();
 
-        user_auth.authentication = Some(pka);
-        user_auth.registration = None;
+        // make sure user has existing auth
+        sqlx::query!(
+            r#"
+                SELECT authentication FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id,
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .ok_or("No auth found for user".to_string())?;
 
-        store.auths.insert(user_id.clone(), user_auth);
+        let pka_json = serde_json::to_string(&pka).map_err(|err| err.to_string())?;
 
-        Ok(())
+        sqlx::query!(
+            r#"
+                UPDATE auth
+                SET authentication = ?, registration = NULL
+                WHERE user_id = ?
+            "#,
+            pka_json,
+            user_id,
+        )
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|err| err.to_string())
+            .map(|_| ())
     }
 
     async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication, String> {
-        let mut store = self.store.lock().await;
-        let mut user_auth = store
-            .auths
-            .get(user_id)
-            .ok_or("Could not find user auth".to_string())?
-            .clone();
-
-        let pka = user_auth
-            .authentication()
-            .ok_or("User has no authentication in progress".to_string())?;
-
-        user_auth.authentication = None;
-        user_auth.registration = None;
-
-        store.auths.insert(user_id.clone(), user_auth);
-
-        Ok(pka)
+        sqlx::query!(
+            r#"
+                SELECT authentication FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .ok_or("No auth found for user".to_string())
+            .and_then(|r| r.authentication.ok_or("No auth found for user".to_string()))
+            .and_then(|a| serde_json::from_str::<PasskeyAuthentication>(&a).map_err(|err| err.to_string()))
     }
 
-    async fn update_credentials(&self, user_id: &Uuid, credentials: AuthenticationResult) -> Result<(), String> {
-        let mut store = self.store.lock().await;
-        let mut auth_state = store.auths.get(user_id).ok_or("Could not find user auth".to_string())?.clone();
-
-        auth_state.passkeys.iter_mut().for_each(|pk| {
-            // This will update the credential if it's the matching
-            // one. Otherwise it's ignored. That is why it is safe to
-            // iterate this over the full list.
-            pk.update_credential(&credentials);
-        });
-
-        store.auths.insert(user_id.clone(), auth_state);
-        Ok(())
-    }
-}
-
-#[derive(Clone)]
-pub struct AuthService {
-    repo: Arc<dyn AuthRepository>,
-    webauthn: Arc<Webauthn>,
-}
-
-impl AuthService {
-    pub fn new(repo: Arc<dyn AuthRepository>, webauthn: Arc<Webauthn>) -> Self {
-        Self { repo, webauthn }
-    }
-
-    pub async fn create_registration(
-        &self,
-        user: User,
-    ) -> Result<CreationChallengeResponse, String> {
-        match self.webauthn.start_passkey_registration(
-            user.id(),
-            user.username(),
-            user.username(),
-            None,
-        ) {
-            Ok((ccr, registration)) => {
-                let user_auth = UserAuth::new(user.id().clone(), registration);
-
-                self.repo.add(user_auth).await?;
-                Ok(ccr)
-            }
-
-            Err(e) => {
-                info!("register error {:?}", e);
-                Err("Failed to register user".to_string())
-            }
-        }
-    }
-
-    pub async fn validate_registration(
+    async fn update_credentials(
         &self,
         user_id: &Uuid,
-        cred: &RegisterPublicKeyCredential,
+        credentials: AuthenticationResult,
     ) -> Result<(), String> {
-        let reg = self.repo.get_registration(user_id).await?;
-        match self.webauthn.finish_passkey_registration(cred, &reg) {
-            Ok(pk) => {
-                self.repo.update_passkey(user_id, pk).await?;
-                return Ok(());
-            }
-            Err(e) => {
-                info!("validating registration {:?}", e);
-                return Err("Error validating registration".to_string());
-            }
-        }
-    }
+        let mut passkeys = sqlx::query!(
+            r#"
+                SELECT passkeys FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id,
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?
+            .map(|record| record.passkeys)
+            .ok_or("No auth found for user".to_string())
+            .and_then(|psk_str| serde_json::from_str::<Vec<Passkey>>(&psk_str).map_err(|err| err.to_string()))?;
 
-    pub async fn login(&self, user_id: &Uuid) -> Result<RequestChallengeResponse, String> {
-        let passkeys = self.repo.get_passkeys(user_id).await?;
-        let (rcr, pka) = self
-            .webauthn
-            .start_passkey_authentication(&passkeys)
-            .or_else(|err| {
-                return Err(err.to_string());
-            })?;
+        // This will update the credential if it's the matching
+        // one. Otherwise it's ignored. That is why it is safe to
+        // iterate this over the full list.
+        passkeys.iter_mut().for_each(|pk| {pk.update_credential(&credentials);});
 
-        self.repo.update_authen(user_id, pka).await?;
+        let passkeys_json = serde_json::to_string(&passkeys).map_err(|err| err.to_string())?;
 
-        Ok(rcr)
-    }
+        sqlx::query!(
+            r#"
+                UPDATE auth
+                SET passkeys = ?
+                WHERE user_id = ?
+            "#,
+            passkeys_json,
+            user_id,
+        )   
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|err| err.to_string())?;
 
-    pub async fn validate_login(&self, user_id: &Uuid, pkc: &PublicKeyCredential) -> Result<(), String> {
-        let pka = self.repo.get_authentication(user_id).await?;
-
-        let credentials = self.webauthn.finish_passkey_authentication(pkc, &pka).or_else(|err| { Err(err.to_string()) })?;
-        self.repo.update_credentials(user_id, credentials).await?;
         Ok(())
+
     }
 }
 
-pub fn create_auth_service(webauthn: Arc<Webauthn>) -> AuthService {
-    let store = Arc::new(Mutex::new(AuthStore {
-        auths: HashMap::new(),
-    }));
-    let repo = Arc::new(AuthMemRepo { store });
-
-    AuthService::new(repo, webauthn)
+pub fn create_auth_repo(pool: &SqlitePool) -> Arc<AuthSqlRepo> {
+    Arc::new(AuthSqlRepo { pool: pool.clone() })
 }

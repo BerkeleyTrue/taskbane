@@ -2,8 +2,8 @@ pub mod auth;
 pub mod home;
 pub mod task;
 
-use crate::app::driven::auth::AuthService;
 use crate::core::services;
+use crate::core::services::auth::AuthService;
 use crate::core::services::task::TaskService;
 use crate::infra::livereload;
 use axum::routing::get;
