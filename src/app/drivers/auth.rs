@@ -101,15 +101,22 @@ async fn post_start_registration(
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<CreationChallengeResponse>, ApiError> {
     let username = payload.username;
-    let Ok(user) = user_service.register_user(username).await else {
+    let user = user_service.register_user(username).await.or_else(|err| {
+        info!("Error registering user: {:?}", err);
         return Err(ApiError::BadRequest {
-            message: "No user found for username".to_string(),
+            message: "Username already exists".to_string(),
         });
-    };
+    })?;
 
-    let Ok(challenge) = auth_service.create_registration(user.clone()).await else {
-        return Err(ApiError::InternalServerError);
-    };
+    let challenge = auth_service
+        .create_registration(user.clone())
+        .await
+        .or_else(|err| {
+            info!("Error creating registration: {:?}", err);
+            return Err(ApiError::BadRequest {
+                message: "Failed to create registration".to_string(),
+            });
+        })?;
 
     SessionAuthState::new(&user.id(), user.username().to_string())
         .update_session(&session)
