@@ -22,7 +22,11 @@
         inputs.git-hooks.flakeModule
       ];
       systems = ["x86_64-linux"];
-      perSystem = {system, ...}: let
+      perSystem = {
+        system,
+        config,
+        ...
+      }: let
         pkgs = import nixpkgs {
           inherit system;
 
@@ -56,6 +60,8 @@
           ];
 
           shellHook = ''
+            ${config.pre-commit.installationScript}
+
             function menu () {
               echo
               echo -e "\033[1;34m>==> ️  '$name' shell\n\033[0m"
