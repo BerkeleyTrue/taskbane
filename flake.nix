@@ -6,15 +6,21 @@
 
     nixgl.url = "github:nix-community/nixGL";
     flake-parts.url = "github:hercules-ci/flake-parts";
+
+    git-hooks.url = "github:cachix/git-hooks.nix";
+    git-hooks.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {
     flake-parts,
     nixpkgs,
+    git-hooks,
     ...
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
-      imports = [];
+      imports = [
+        inputs.git-hooks.flakeModule
+      ];
       systems = ["x86_64-linux"];
       perSystem = {system, ...}: let
         pkgs = import nixpkgs {
@@ -25,20 +31,28 @@
         };
       in {
         formatter.default = pkgs.alejandra;
+
+        pre-commit.settings.hooks.alejandra.enable = true;
+        pre-commit.settings.hooks.clippy.enable = true;
+        pre-commit.settings.hooks.rustfmt.enable = true;
+
         devShells.default = pkgs.mkShell {
           name = "taskbane";
 
           buildInputs = with pkgs; [
             cargo
             cargo-generate
+            cargo-watch
             rustc
+
+            clippy
+            rustfmt
+
             sqlx-cli
             pnpm
             tailwindcss_4
             openssl
             pkg-config
-            # rustup
-            # rustfmt
           ];
 
           shellHook = ''
