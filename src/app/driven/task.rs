@@ -22,7 +22,6 @@ impl<S: Storage> TaskRepository for TaskRepo<S> {
     }
 }
 
-pub fn create_task_repo<S: Storage>(task_storage: S) -> Arc<TaskRepo<S>> {
-    let replica = Replica::new(task_storage);
+pub fn create_task_repo<S: Storage>(replica: Replica<S>) -> Arc<TaskRepo<S>> {
     Arc::new(TaskRepo { replica })
 }
