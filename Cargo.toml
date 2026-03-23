@@ -17,10 +17,10 @@ headers-accept = "0.2.0"
 mediatype = "0.20.0"
 rand = "0.9.2"
 ring = "0.17.14"
+rusqlite = "0.37.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.143"
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "migrate", "uuid", "chrono", "macros"]}
-taskchampion = { git = "https://github.com/geofflittle/taskchampion", branch = "async-txn" }
+taskchampion = { features = ["sync", "server-sync"], version = "3.0.1" }
 thiserror = "2.0.14"
 tokio = { version = "1.47.0", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["sync"] }
@@ -28,7 +28,7 @@ tokio-util = "0.7.16"
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["full"] }
 tower-sessions = "0.14.0"
-tower-sessions-sqlx-store = {version = "0.15.0", features = ["sqlite"]}
+tower-sessions-rusqlite-store = "0.14.1"
 tracing = "0.1.41"
 tracing-subscriber = "0.3"
 uuid = {version = "1.17.0", features = ["v4", "serde"]}
