@@ -59,7 +59,7 @@ impl IntoResponse for ApiError {
             }
         };
 
-        return (status, Json(mess)).into_response();
+        (status, Json(mess)).into_response()
     }
 }
 
@@ -130,7 +130,7 @@ fn middleware(app: Router) -> Router {
                     |req: &Request<_>| info_span!("", status=tracing::field::Empty, method=%req.method(), path=%req.uri()),
                 )
                 .on_response(|res: &Response<_>, _latency: Duration, span: &Span| {
-                    span.record("status", &tracing::field::display(res.status()));
+                    span.record("status", tracing::field::display(res.status()));
                     info!("")
                 }),
         );

@@ -12,11 +12,10 @@ pub struct UserSqlRepo {
 #[async_trait]
 impl UserRepository for UserSqlRepo {
     async fn add(&self, id: Uuid, username: String) -> Result<User, String> {
-        let new_user_id = id.clone();
         let existing_user = sqlx::query_as!(
             User,
             r#"SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?"#,
-            new_user_id
+            id
         )
         .fetch_optional(&self.pool)
         .await
@@ -35,7 +34,7 @@ impl UserRepository for UserSqlRepo {
             VALUES (?, ?)
             RETURNING id as `id:uuid::Uuid`, username
         "#,
-            new_user_id,
+            id,
             username_copy,
         )
         .fetch_one(&self.pool)

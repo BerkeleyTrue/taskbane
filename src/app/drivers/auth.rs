@@ -101,24 +101,24 @@ async fn post_start_registration(
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<CreationChallengeResponse>, ApiError> {
     let username = payload.username;
-    let user = user_service.register_user(username).await.or_else(|err| {
+    let user = user_service.register_user(username).await.map_err(|err| {
         info!("Error registering user: {:?}", err);
-        return Err(ApiError::BadRequest {
+        ApiError::BadRequest {
             message: "Username already exists".to_string(),
-        });
+        }
     })?;
 
     let challenge = auth_service
         .create_registration(user.clone())
         .await
-        .or_else(|err| {
+        .map_err(|err| {
             info!("Error creating registration: {:?}", err);
-            return Err(ApiError::BadRequest {
+            ApiError::BadRequest {
                 message: "Failed to create registration".to_string(),
-            });
+            }
         })?;
 
-    SessionAuthState::new(&user.id(), user.username().to_string())
+    SessionAuthState::new(user.id(), user.username().to_string())
         .update_session(&session)
         .await
         .map_err(|_| ApiError::InternalServerError)?;
@@ -196,21 +196,21 @@ async fn post_authenticate(
     }): State<AuthState>,
     Json(LoginParams { username }): Json<LoginParams>,
 ) -> Result<Json<RequestChallengeResponse>, ApiError> {
-    let user = user_service.get_login(username).await.or_else(|err| {
+    let user = user_service.get_login(username).await.map_err(|err| {
         info!(err);
-        return Err(ApiError::BadRequest {
+        ApiError::BadRequest {
             message: "No user found for username".to_string(),
-        });
+        }
     })?;
 
-    let rcr = auth_service.login(&user.id()).await.or_else(|err| {
+    let rcr = auth_service.login(&user.id()).await.map_err(|err| {
         info!("Error during login: {:?}", err);
-        return Err(ApiError::BadRequest {
+        ApiError::BadRequest {
             message: "Failed to login user".to_string(),
-        });
+        }
     })?;
 
-    SessionAuthState::new(&user.id(), user.username().to_string())
+    SessionAuthState::new(user.id(), user.username().to_string())
         .update_session(&session)
         .await
         .map_err(|_| ApiError::InternalServerError)?;
@@ -230,11 +230,11 @@ async fn post_validate_authen(
     auth_service
         .validate_login(&session_auth.user_id(), &pkc)
         .await
-        .or_else(|err| {
+        .map_err(|err| {
             info!("Error validating login: {:?}", err);
-            return Err(ApiError::BadRequest {
+            ApiError::BadRequest {
                 message: "Failed to validate login".to_string(),
-            });
+            }
         })?;
 
     session_auth
@@ -296,8 +296,8 @@ async fn username_validation(
     };
 
     if let Ok(body) = form_error.render() {
-        return Html(body);
+        Html(body)
     } else {
-        return Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string());
+        Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string())
     }
 }

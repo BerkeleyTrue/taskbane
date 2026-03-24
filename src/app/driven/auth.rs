@@ -25,7 +25,7 @@ impl From<AuthStateDb> for UserAuth {
         let authentication = value
             .authentication
             .and_then(|a| serde_json::from_str::<PasskeyAuthentication>(&a).ok());
-        let passkeys = serde_json::from_str::<Vec<Passkey>>(&value.passkeys).unwrap_or(Vec::new());
+        let passkeys = serde_json::from_str::<Vec<Passkey>>(&value.passkeys).unwrap_or_default();
         Self {
             user_id: value.user_id,
             passkeys,
@@ -42,7 +42,7 @@ pub struct AuthSqlRepo {
 #[async_trait]
 impl AuthRepository for AuthSqlRepo {
     async fn add(&self, auth: UserAuth) -> Result<UserAuth, String> {
-        let user_id = auth.user_id().clone();
+        let user_id = auth.user_id();
         let existing_auth = sqlx::query!(
             r#"
                 SELECT registration FROM auth
@@ -82,14 +82,12 @@ impl AuthRepository for AuthSqlRepo {
     }
 
     async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration, String> {
-        let user_id_clone = user_id.clone();
-
         let maybe_registration = sqlx::query!(
             r#"
                 SELECT registration FROM auth
                 WHERE user_id = ?
             "#,
-            user_id_clone,
+            user_id,
         )
         .fetch_optional(&self.pool)
         .await

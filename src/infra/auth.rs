@@ -28,9 +28,9 @@ pub struct SessionAuthState {
 }
 
 impl SessionAuthState {
-    pub fn new(user_id: &Uuid, username: String) -> Self {
+    pub fn new(user_id: Uuid, username: String) -> Self {
         SessionAuthState {
-            user_id: user_id.clone(),
+            user_id,
             username,
             is_authed: false,
         }
@@ -138,11 +138,11 @@ pub async fn authentication_middlewared(
 ) -> Response {
     let format = accept
         .and_then(|TypedHeader(accept)| accept.negotiate(ACCEPT_LIST))
-        .and_then(|media_type| {
+        .map(|media_type| {
             if let ("application", "json") = (media_type.ty.as_str(), media_type.subty.as_str()) {
-                return Some(ResponseType::Json);
+                return ResponseType::Json;
             }
-            Some(ResponseType::Text)
+            ResponseType::Text
         })
         .unwrap_or(ResponseType::Text);
 

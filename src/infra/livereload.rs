@@ -18,6 +18,12 @@ use tokio_stream::{
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
+type LiveReloadState = (
+    broadcast::Sender<()>,
+    std::sync::Arc<tokio::sync::Mutex<Option<oneshot::Receiver<()>>>>,
+    CancellationToken,
+);
+
 pub fn live_reload(
     on_start_rx: oneshot::Receiver<()>,
     shutdown_token: CancellationToken,
@@ -32,11 +38,7 @@ pub fn live_reload(
     let on_start_rx = std::sync::Arc::new(tokio::sync::Mutex::new(Some(on_start_rx)));
 
     async fn get_live_reload(
-        State((tx, on_start_rx, shutdown_token)): State<(
-            broadcast::Sender<()>,
-            std::sync::Arc<tokio::sync::Mutex<Option<oneshot::Receiver<()>>>>,
-            CancellationToken,
-        )>,
+        State((tx, on_start_rx, shutdown_token)): State<LiveReloadState>,
     ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
         // Start listening for the start signal when first client connects
         let tx_clone = tx.clone();
