@@ -8,7 +8,16 @@ fn main() {
     println!("cargo:rerun-if-changed=templates");
 
     let output = Command::new("tailwindcss")
-        .args(&["-i", "src/style.css", "-o", "public/css/style.css", "--content", "templates/**/*.html", "--content", "src/app/drivers/**/*.rs"])
+        .args(&[
+            "-i",
+            "src/style.css",
+            "-o",
+            "public/css/style.css",
+            "--content",
+            "templates/**/*.html",
+            "--content",
+            "src/app/drivers/**/*.rs",
+        ])
         .output()
         .expect("Failed to execute tailwindcss command");
 

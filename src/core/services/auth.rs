@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use derive_more::Constructor;
 use uuid::Uuid;
 use webauthn_rs::{
     prelude::{
@@ -14,17 +15,13 @@ use crate::core::{
     ports::AuthRepository,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Constructor)]
 pub struct AuthService {
     repo: Arc<dyn AuthRepository>,
     webauthn: Arc<Webauthn>,
 }
 
 impl AuthService {
-    pub fn new(repo: Arc<dyn AuthRepository>, webauthn: Arc<Webauthn>) -> Self {
-        Self { repo, webauthn }
-    }
-
     pub async fn create_registration(
         &self,
         user: User,

@@ -11,13 +11,10 @@ pub struct TaskService {
 
 impl TaskService {
     pub fn new(repo: Arc<dyn TaskRepository>) -> Self {
-        Self {
-            repo
-        }
+        Self { repo }
     }
 
     pub async fn list(&self) -> Result<Vec<Task>, String> {
-        return Ok(Vec::new())
+        return Ok(Vec::new());
     }
 }
-

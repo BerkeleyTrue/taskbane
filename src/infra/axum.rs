@@ -32,7 +32,10 @@ impl IntoResponse for AppError {
             AppError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
-        let tmpl = Tmpl { err: self, is_authed: false };
+        let tmpl = Tmpl {
+            err: self,
+            is_authed: false,
+        };
 
         if let Ok(body) = tmpl.render() {
             (status, Html(body)).into_response()

@@ -1,8 +1,8 @@
 use crate::core::{models::User, ports::UserRepository};
 use async_trait::async_trait;
 use sqlx::SqlitePool;
-use tracing::info;
 use std::sync::Arc;
+use tracing::info;
 use uuid::Uuid;
 
 pub struct UserSqlRepo {
@@ -65,7 +65,9 @@ impl UserRepository for UserSqlRepo {
         )
         .fetch_optional(&self.pool)
         .await
-        .inspect_err(|err| { info!("Error fetching user by username: {}", err); })
+        .inspect_err(|err| {
+            info!("Error fetching user by username: {}", err);
+        })
         .unwrap_or(None)
     }
 

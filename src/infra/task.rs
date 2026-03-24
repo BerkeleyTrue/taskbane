@@ -1,41 +1,32 @@
-use std::{env, sync::{Arc, Mutex}};
+use std::env;
 
-use taskchampion::{
-    storage::{InMemoryStorage, Storage}, Replica, Server, ServerConfig
-};
+use taskchampion::{storage::inmemory::InMemoryStorage, Replica, Server, ServerConfig};
 use uuid::Uuid;
 
-struct TaskSync {
-    replica: Replica<InMemoryStorage>,
-    server: Arc<Mutex<dyn Server + Send>>,
-}
-
-impl TaskSync {
-    fn new(url: String, client_id: Uuid, encryption_secret: Vec<u8>, replica: Replica<InMemoryStorage>) -> Self {
-        
-        let server = ServerConfig::Remote {
-            url,
-            client_id,
-            encryption_secret,
-        };
-
-        TaskSync {
-            server: server.into_server().expect("Could not create taskserver"),
-            replica: replica
-        }
-    }
-
-    fn sync(&mut self) {
-        self.replica.sync(self.server.clone(), true);
-    }
-}
-
-pub fn create_task_storage() -> (Replica<Storage>, TaskSync) {
+pub async fn create_task_storage() -> anyhow::Result<(Replica<InMemoryStorage>, Box<dyn Server>)> {
     let storage = InMemoryStorage::new();
-    let url = &env::var("TASK_URL").expect("No taskserver url provided").to_string();
-    let client_id = &env::var("TASK_CLIENT_ID").expect("No task client id provided").to_string();
-    let encryped_secret = &env::var("TASK_SECRET").expect("No task secret provided").to_string();
+    let url = env::var("TASK_URL").expect("No taskserver url provided");
+
+    let client_id = env::var("TASK_CLIENT_ID")
+        .map_err(anyhow::Error::from)
+        .and_then(|id| Uuid::parse_str(&id).map_err(anyhow::Error::from))
+        .expect("No task client id provided");
+
+    let encryption_secret: Vec<u8> = env::var("TASK_SECRET")
+        .expect("No task secret provided")
+        .into();
+
     let replica = Replica::new(storage);
-    let task_sync = TaskSync::new(url, client_id, encryped_secret, replica);
-    (replica, task_sync)
+
+    let server_config = ServerConfig::Remote {
+        url,
+        client_id,
+        encryption_secret,
+    };
+    let server = server_config
+        .into_server()
+        .await
+        .expect("Could not create taskserver");
+
+    Ok((replica, server))
 }

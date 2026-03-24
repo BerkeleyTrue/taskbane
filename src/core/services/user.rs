@@ -1,18 +1,15 @@
 use crate::core::models;
 use crate::core::ports;
+use derive_more::Constructor;
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Clone)]
+#[derive(Clone, Constructor)]
 pub struct UserService {
     repo: Arc<dyn ports::UserRepository>,
 }
 
 impl UserService {
-    pub fn new(repo: Arc<dyn ports::UserRepository>) -> Self {
-        Self { repo: repo }
-    }
-
     pub async fn is_username_available(&self, username: String) -> bool {
         self.repo.get_by_username(username).await.is_none()
     }

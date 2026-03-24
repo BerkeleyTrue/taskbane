@@ -13,7 +13,7 @@ use dotenv::dotenv;
 use tokio::sync::oneshot;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     // initialize tracing
     tracing_subscriber::fmt::init();
     dotenv().expect("Failed to load .env");
@@ -22,8 +22,8 @@ async fn main() {
     let pool = create_sqlx();
     let session_store = create_session_store(&pool);
     let webauthn = infra::webauthn::create_authn();
-    let task_storage = infra::task::create_task_storage();
-    let (user_repo, auth_repo, task_repo) = driven::create_driven(&pool, task_storage);
+    let (task_replica, _) = infra::task::create_task_storage().await?;
+    let (user_repo, auth_repo, task_repo) = driven::create_driven(&pool, task_replica);
     let (user_service, task_service, auth_service) =
         services::create_services(CreateServiceParams {
             user_repo,
@@ -44,4 +44,5 @@ async fn main() {
     });
 
     start_server(app, tx, shutdown_token, session_store).await;
+    Ok(())
 }

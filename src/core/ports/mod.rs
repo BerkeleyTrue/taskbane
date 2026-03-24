@@ -1,7 +1,7 @@
-mod user;
-mod task;
 mod auth;
+mod task;
+mod user;
 
 pub use auth::AuthRepository;
-pub use user::UserRepository;
 pub use task::TaskRepository;
+pub use user::UserRepository;

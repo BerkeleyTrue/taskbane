@@ -1,25 +1,17 @@
+use derive_more::{Constructor, Eq, PartialEq};
 use serde::Serialize;
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 use webauthn_rs::prelude::{Passkey, PasskeyAuthentication, PasskeyRegistration};
 
-#[derive(Debug, Clone, Serialize, FromRow)]
+#[derive(Debug, Clone, Serialize, FromRow, PartialEq, Eq, Constructor)]
 pub struct User {
     pub id: Uuid,
+    #[eq(skip)]
     pub username: String,
 }
 
-impl PartialEq for User {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
 impl User {
-    pub fn new(id: Uuid, username: String) -> Self {
-        User { id, username }
-    }
-
     pub fn id(&self) -> Uuid {
         self.id
     }

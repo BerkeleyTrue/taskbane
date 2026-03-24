@@ -1,27 +1,28 @@
-
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use derive_more::Constructor;
 use taskchampion::{storage::Storage, Replica, Task};
 
 use crate::core::ports::TaskRepository;
 
-pub struct TaskRepo<S: Storage> {
+#[derive(Constructor)]
+pub struct TaskRepo<S: Storage + Sync> {
     replica: Replica<S>,
 }
 
-
 #[async_trait]
-impl<S: Storage> TaskRepository for TaskRepo<S> {
-    async fn list(&mut self) -> Result<Vec<Task>, String> {
-        self.replica
+impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
+    async fn list(&mut self) -> anyhow::Result<Vec<Task>> {
+        let tasks = self
+            .replica
             .all_tasks()
             .await
-            .map_err(|err| err.to_string())
-            .map(|hm| hm.into_values().collect::<Vec<Task>>())
+            .map(|hm| hm.into_values().collect::<Vec<Task>>())?;
+        Ok(tasks)
     }
 }
 
-pub fn create_task_repo<S: Storage>(replica: Replica<S>) -> Arc<TaskRepo<S>> {
-    Arc::new(TaskRepo { replica })
+pub fn create_task_repo<S: Storage + Sync>(replica: Replica<S>) -> Arc<TaskRepo<S>> {
+    Arc::new(TaskRepo::new(replica))
 }

@@ -18,7 +18,10 @@ use tokio_stream::{
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
-pub fn live_reload(on_start_rx: oneshot::Receiver<()>, shutdown_token: CancellationToken) -> Router {
+pub fn live_reload(
+    on_start_rx: oneshot::Receiver<()>,
+    shutdown_token: CancellationToken,
+) -> Router {
     // convert the oneshot receiver into a broadcast channel sender
     // so that we can send a start event when the server starts
     // to all clients that are connected to the SSE endpoint

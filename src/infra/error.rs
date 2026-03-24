@@ -8,7 +8,7 @@ pub enum AppError {
     #[error("Failed to rendered template")]
     Render(#[from] askama::Error),
     #[error("Internal Server Error")]
-    InternalServerError
+    InternalServerError,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,7 +41,7 @@ impl ErrorMessage {
 impl From<ApiError> for ErrorMessage {
     fn from(err: ApiError) -> ErrorMessage {
         ErrorMessage {
-            message: err.to_string()
+            message: err.to_string(),
         }
     }
 }

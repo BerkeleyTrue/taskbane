@@ -20,7 +20,7 @@ const ACCEPT_JSON: MediaType = MediaType::new(names::APPLICATION, names::JSON);
 const ACCEPT_HTML: MediaType = MediaType::new(names::TEXT, names::HTML);
 const ACCEPT_LIST: &[MediaType; 2] = &[ACCEPT_JSON, ACCEPT_HTML];
 
-#[derive(Default, Deserialize, Serialize, Clone)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct SessionAuthState {
     user_id: Uuid,
     username: String,
