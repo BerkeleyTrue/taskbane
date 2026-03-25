@@ -1,4 +1,5 @@
 use crate::core::{models::User, ports::UserRepository};
+use anyhow::{anyhow, Error, Result};
 use async_trait::async_trait;
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -11,19 +12,18 @@ pub struct UserSqlRepo {
 
 #[async_trait]
 impl UserRepository for UserSqlRepo {
-    async fn add(&self, id: Uuid, username: String) -> Result<User, String> {
+    async fn add(&self, id: Uuid, username: String) -> Result<User> {
         let existing_user = sqlx::query_as!(
             User,
             r#"SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?"#,
             id
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
+        .await?
         .is_some();
 
         if existing_user {
-            return Err("User with username already exists".to_string());
+            return Err(anyhow!("User with username already exists"));
         }
 
         let user = User::new(id, username);
@@ -38,22 +38,20 @@ impl UserRepository for UserSqlRepo {
             username_copy,
         )
         .fetch_one(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?;
+        .await?;
 
         Ok(user)
     }
 
-    async fn get(&self, id: Uuid) -> Result<User, String> {
+    async fn get(&self, id: Uuid) -> Result<User> {
         sqlx::query_as!(
             User,
             "SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?",
             id
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
-        .ok_or("User not found".to_string())
+        .await?
+        .ok_or(anyhow!("User not found"))
     }
 
     async fn get_by_username(&self, username: String) -> Option<User> {
@@ -70,7 +68,7 @@ impl UserRepository for UserSqlRepo {
         .unwrap_or(None)
     }
 
-    async fn update(&self, id: Uuid, username: String) -> Result<(), String> {
+    async fn update(&self, id: Uuid, username: String) -> Result<()> {
         sqlx::query!(
             r#"
                 UPDATE users
@@ -82,15 +80,15 @@ impl UserRepository for UserSqlRepo {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|err| err.to_string())
+        .map_err(Error::from)
         .map(|_| ())
     }
 
-    async fn delete(&self, id: Uuid) -> Result<(), String> {
+    async fn delete(&self, id: Uuid) -> Result<()> {
         sqlx::query!("DELETE FROM users WHERE id = ?", id)
             .execute(&self.pool)
             .await
-            .map_err(|err| err.to_string())
+            .map_err(Error::from)
             .map(|_| ())
     }
 }

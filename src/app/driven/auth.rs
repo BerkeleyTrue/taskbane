@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::{anyhow, Error, Result};
 use async_trait::async_trait;
 use sqlx::{self, SqlitePool};
 use uuid::Uuid;
@@ -41,7 +42,7 @@ pub struct AuthSqlRepo {
 
 #[async_trait]
 impl AuthRepository for AuthSqlRepo {
-    async fn add(&self, auth: UserAuth) -> Result<UserAuth, String> {
+    async fn add(&self, auth: UserAuth) -> Result<UserAuth> {
         let user_id = auth.user_id();
         let existing_auth = sqlx::query!(
             r#"
@@ -51,18 +52,18 @@ impl AuthRepository for AuthSqlRepo {
             user_id
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
+        .await?
         .is_some();
 
         if existing_auth {
-            return Err("Existing Challenge for user".to_string());
+            return Err(anyhow!("Existing Challenge for user"));
         }
 
         let user_id = auth.user_id();
         let registration = auth
             .registration()
             .and_then(|r| serde_json::to_string(&r).ok());
+
         sqlx::query!(
             r#"
                 INSERT INTO auth (user_id, registration, authentication, passkeys)
@@ -75,13 +76,12 @@ impl AuthRepository for AuthSqlRepo {
             "[]",
         )
         .fetch_one(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?;
+        .await?;
 
         Ok(auth)
     }
 
-    async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration, String> {
+    async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration> {
         let maybe_registration = sqlx::query!(
             r#"
                 SELECT registration FROM auth
@@ -90,13 +90,12 @@ impl AuthRepository for AuthSqlRepo {
             user_id,
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
+        .await?
         .and_then(|r| r.registration)
         .and_then(|r| serde_json::from_str::<PasskeyRegistration>(&r).ok());
 
         let Some(registration) = maybe_registration else {
-            return Err(format!(
+            return Err(anyhow!(
                 "No registration found for {:?}",
                 user_id.to_string()
             ));
@@ -105,7 +104,7 @@ impl AuthRepository for AuthSqlRepo {
         Ok(registration)
     }
 
-    async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>, String> {
+    async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>> {
         sqlx::query!(
             r#"
                 SELECT passkeys FROM auth
@@ -114,14 +113,13 @@ impl AuthRepository for AuthSqlRepo {
             user_id
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
+        .await?
         .map(|r| r.passkeys)
         .and_then(|pks| serde_json::from_str::<Vec<Passkey>>(&pks).ok())
-        .ok_or("No passkeys found for user".to_string())
+        .ok_or(anyhow!("No passkeys found for user"))
     }
 
-    async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<(), String> {
+    async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<()> {
         let mut passkeys = sqlx::query!(
             r#"
                 SELECT passkeys FROM auth
@@ -130,17 +128,14 @@ impl AuthRepository for AuthSqlRepo {
             user_id,
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
+        .await?
         .map(|record| record.passkeys)
-        .ok_or("No auth found for user".to_string())
-        .and_then(|psk_str| {
-            serde_json::from_str::<Vec<Passkey>>(&psk_str).map_err(|err| err.to_string())
-        })?;
+        .ok_or(anyhow!("No auth found for user"))
+        .and_then(|psk_str| serde_json::from_str::<Vec<Passkey>>(&psk_str).map_err(Error::from))?;
 
         passkeys.push(pk);
 
-        let passkeys_json = serde_json::to_string(&passkeys).map_err(|err| err.to_string())?;
+        let passkeys_json = serde_json::to_string(&passkeys)?;
 
         sqlx::query!(
             r#"
@@ -152,17 +147,12 @@ impl AuthRepository for AuthSqlRepo {
             user_id,
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?;
+        .await?;
 
         Ok(())
     }
 
-    async fn update_authen(
-        &self,
-        user_id: &Uuid,
-        pka: PasskeyAuthentication,
-    ) -> Result<(), String> {
+    async fn update_authen(&self, user_id: &Uuid, pka: PasskeyAuthentication) -> Result<()> {
         // make sure user has existing auth
         sqlx::query!(
             r#"
@@ -172,11 +162,10 @@ impl AuthRepository for AuthSqlRepo {
             user_id,
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
-        .ok_or("No auth found for user".to_string())?;
+        .await?
+        .ok_or(anyhow!("No auth found for user"))?;
 
-        let pka_json = serde_json::to_string(&pka).map_err(|err| err.to_string())?;
+        let pka_json = serde_json::to_string(&pka)?;
 
         sqlx::query!(
             r#"
@@ -190,11 +179,11 @@ impl AuthRepository for AuthSqlRepo {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|err| err.to_string())
+        .map_err(Error::from)
         .map(|_| ())
     }
 
-    async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication, String> {
+    async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication> {
         sqlx::query!(
             r#"
                 SELECT authentication FROM auth
@@ -203,20 +192,17 @@ impl AuthRepository for AuthSqlRepo {
             user_id
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
-        .ok_or("No auth found for user".to_string())
-        .and_then(|r| r.authentication.ok_or("No auth found for user".to_string()))
-        .and_then(|a| {
-            serde_json::from_str::<PasskeyAuthentication>(&a).map_err(|err| err.to_string())
-        })
+        .await?
+        .ok_or(anyhow!("No auth found for user"))
+        .and_then(|r| r.authentication.ok_or(anyhow!("No auth found for user")))
+        .and_then(|a| serde_json::from_str::<PasskeyAuthentication>(&a).map_err(Error::from))
     }
 
     async fn update_credentials(
         &self,
         user_id: &Uuid,
         credentials: AuthenticationResult,
-    ) -> Result<(), String> {
+    ) -> Result<()> {
         let mut passkeys = sqlx::query!(
             r#"
                 SELECT passkeys FROM auth
@@ -225,13 +211,10 @@ impl AuthRepository for AuthSqlRepo {
             user_id,
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?
+        .await?
         .map(|record| record.passkeys)
-        .ok_or("No auth found for user".to_string())
-        .and_then(|psk_str| {
-            serde_json::from_str::<Vec<Passkey>>(&psk_str).map_err(|err| err.to_string())
-        })?;
+        .ok_or(anyhow!("No auth found for user"))
+        .and_then(|psk_str| serde_json::from_str::<Vec<Passkey>>(&psk_str).map_err(Error::from))?;
 
         // This will update the credential if it's the matching
         // one. Otherwise it's ignored. That is why it is safe to
@@ -240,7 +223,7 @@ impl AuthRepository for AuthSqlRepo {
             pk.update_credential(&credentials);
         });
 
-        let passkeys_json = serde_json::to_string(&passkeys).map_err(|err| err.to_string())?;
+        let passkeys_json = serde_json::to_string(&passkeys)?;
 
         sqlx::query!(
             r#"
@@ -252,8 +235,7 @@ impl AuthRepository for AuthSqlRepo {
             user_id,
         )
         .fetch_optional(&self.pool)
-        .await
-        .map_err(|err| err.to_string())?;
+        .await?;
 
         Ok(())
     }

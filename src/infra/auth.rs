@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Error, Result};
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts, Request},
     http,
@@ -36,19 +37,16 @@ impl SessionAuthState {
         }
     }
 
-    pub async fn maybe_from_session(session: Session) -> Result<Option<Self>, String> {
-        session
-            .get::<Self>(SESSION_KEY)
-            .await
-            .map_err(|e| e.to_string())
+    pub async fn maybe_from_session(session: Session) -> Result<Option<Self>> {
+        session.get::<Self>(SESSION_KEY).await.map_err(Error::from)
     }
 
-    pub async fn from_session(session: Session) -> Result<Self, String> {
+    pub async fn from_session(session: Session) -> Result<Self> {
         session
             .get::<Self>(SESSION_KEY)
             .await
-            .map_err(|err| err.to_string())?
-            .ok_or("No session found".to_string())
+            .map_err(Error::from)?
+            .ok_or(anyhow!("No session found"))
     }
 
     pub fn user_id(&self) -> Uuid {
@@ -71,11 +69,8 @@ impl SessionAuthState {
         }
     }
 
-    pub async fn update_session(&self, session: &Session) -> Result<Self, String> {
-        session
-            .insert(SESSION_KEY, self.clone())
-            .await
-            .map_err(|err| err.to_string())?;
+    pub async fn update_session(&self, session: &Session) -> Result<Self> {
+        session.insert(SESSION_KEY, self.clone()).await?;
 
         Ok(self.clone())
     }

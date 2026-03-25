@@ -20,11 +20,16 @@ pub struct CreateServiceParams {
 }
 
 pub fn create_services(
-    params: CreateServiceParams,
+    CreateServiceParams {
+        user_repo,
+        auth_repo,
+        task_repo,
+        webauthn,
+    }: CreateServiceParams,
 ) -> (user::UserService, task::TaskService, auth::AuthService) {
     (
-        user::UserService::new(params.user_repo),
-        task::TaskService::new(params.task_repo),
-        auth::AuthService::new(params.auth_repo, params.webauthn),
+        user::UserService::new(user_repo),
+        task::TaskService::new(task_repo),
+        auth::AuthService::new(auth_repo, webauthn),
     )
 }

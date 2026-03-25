@@ -1,5 +1,6 @@
 use crate::core::models;
 use crate::core::ports;
+use anyhow::{anyhow, Result};
 use derive_more::Constructor;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -14,17 +15,17 @@ impl UserService {
         self.repo.get_by_username(username).await.is_none()
     }
 
-    pub async fn register_user(&self, username: String) -> Result<models::User, String> {
+    pub async fn register_user(&self, username: String) -> Result<models::User> {
         let id = Uuid::new_v4();
         if !self.is_username_available(username.clone()).await {
-            return Err("Username already exists".to_string());
+            return Err(anyhow!("Username already exists"));
         }
         self.repo.add(id, username).await
     }
-    pub async fn get_login(&self, username: String) -> Result<models::User, String> {
+    pub async fn get_login(&self, username: String) -> Result<models::User> {
         self.repo
             .get_by_username(username)
             .await
-            .ok_or_else(|| "No user found for username".to_string())
+            .ok_or(anyhow!("No user found for username"))
     }
 }

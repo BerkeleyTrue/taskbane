@@ -197,7 +197,7 @@ async fn post_authenticate(
     Json(LoginParams { username }): Json<LoginParams>,
 ) -> Result<Json<RequestChallengeResponse>, ApiError> {
     let user = user_service.get_login(username).await.map_err(|err| {
-        info!(err);
+        info!("get login err: {err:}");
         ApiError::BadRequest {
             message: "No user found for username".to_string(),
         }
