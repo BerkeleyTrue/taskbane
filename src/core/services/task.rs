@@ -14,7 +14,7 @@ impl TaskService {
         Self { repo }
     }
 
-    pub async fn list(&self) -> Result<Vec<Task>, String> {
-        return Ok(Vec::new());
+    pub async fn list(&self) -> anyhow::Result<Vec<Task>> {
+        self.repo.list().await
     }
 }

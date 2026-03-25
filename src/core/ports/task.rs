@@ -3,5 +3,5 @@ use taskchampion::Task;
 
 #[async_trait]
 pub trait TaskRepository: Send + Sync {
-    async fn list(&mut self) -> anyhow::Result<Vec<Task>>;
+    async fn list(&self) -> anyhow::Result<Vec<Task>>;
 }
