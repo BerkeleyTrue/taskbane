@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use derive_more::Constructor;
-use taskchampion::{storage::Storage, Task};
+use taskchampion::{storage::Storage, Status, Task};
 
 use crate::{core::ports::TaskRepository, infra::task::ArcMutRep};
 
@@ -19,9 +19,14 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
             .replica
             .lock()
             .await
-            .all_tasks()
+            .pending_tasks()
             .await
-            .map(|hm| hm.into_values().collect::<Vec<Task>>())?;
+            .map(|tasks| {
+                tasks
+                    .into_iter()
+                    .filter(|task| task.get_status() == Status::Pending && !task.is_waiting())
+                    .collect()
+            })?;
         Ok(tasks)
     }
 }
