@@ -1,6 +1,7 @@
 mod app;
 mod core;
 mod infra;
+mod types;
 
 use crate::app::driven;
 use crate::app::drivers;

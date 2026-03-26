@@ -14,9 +14,10 @@ use crate::{
         auth::{authentication_middlewared, SessionAuthState},
         error::AppError,
     },
+    types::ArcMut,
 };
 
-pub fn task_routes(task_service: TaskService) -> axum::Router {
+pub fn task_routes(task_service: ArcMut<TaskService>) -> axum::Router {
     Router::new()
         .route("/task", routing::get(get_task))
         .route(
@@ -35,10 +36,12 @@ struct TaskPage {
 }
 
 pub async fn get_task(
-    task_service: State<TaskService>,
+    task_service: State<ArcMut<TaskService>>,
     auth_state: SessionAuthState,
 ) -> Result<impl IntoResponse, AppError> {
-    let tasks = task_service.list().await.map_err(|err| {
+    let mut task_serv = task_service.lock().await;
+
+    let tasks = task_serv.list().await.map_err(|err| {
         info!("Error getting tasks: {:?}", err);
         AppError::InternalServerError
     })?;

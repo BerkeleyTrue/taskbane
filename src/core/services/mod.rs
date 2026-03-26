@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use webauthn_rs::Webauthn;
 
-use crate::core::ports;
+use crate::{core::ports, types::ArcMut};
 
 pub use auth::AuthService;
 pub use task::TaskService;
@@ -26,7 +26,11 @@ pub fn create_services(
         task_repo,
         webauthn,
     }: CreateServiceParams,
-) -> (user::UserService, task::TaskService, auth::AuthService) {
+) -> (
+    user::UserService,
+    ArcMut<task::TaskService>,
+    auth::AuthService,
+) {
     (
         user::UserService::new(user_repo),
         task::TaskService::new(task_repo),
