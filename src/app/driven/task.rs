@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use derive_more::Constructor;
-use taskchampion::{storage::Storage, Replica, Task};
+use taskchampion::{storage::Storage, Replica, Server, Task};
 use tokio::sync::Mutex;
 use tracing::info;
 
@@ -25,6 +26,12 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
             .map(|hm| hm.into_values().collect::<Vec<Task>>())?;
         info!("tasks: {tasks:?}");
         Ok(tasks)
+    }
+
+    async fn sync(&self, server: &mut Box<dyn Server>) -> Result<()> {
+        self.replica.lock().await.sync(server, false).await?;
+
+        Ok(())
     }
 }
 
