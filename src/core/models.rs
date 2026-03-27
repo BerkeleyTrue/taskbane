@@ -1,7 +1,12 @@
+use std::str::FromStr;
+
 use derive_more::{Constructor, Eq, PartialEq};
 use serde::Serialize;
 use sqlx::prelude::FromRow;
-use taskchampion::{Status, Task};
+use taskchampion::{
+    chrono::{DateTime, Utc},
+    Status, Tag, Task,
+};
 use uuid::Uuid;
 use webauthn_rs::prelude::{Passkey, PasskeyAuthentication, PasskeyRegistration};
 
@@ -59,21 +64,52 @@ impl UserAuth {
     }
 }
 
+// urgency coefficient
+const NEXT_TAG: f64 = 15.0;
+const OVERDUE: f64 = 12.0;
+const BLOCKING_OTHERS: f64 = 8.0;
+const PRIORITY_HIGH: f64 = 6.0;
+const PRIORITY_MEDIUM: f64 = 3.9;
+const ACTIVE_STARTED: f64 = 4.0;
+const TASK_AGE: f64 = 2.0;
+const PROJECT_ASSIGNED: f64 = 1.0;
+const WAITING: f64 = -3.0;
+const BLOCKED: f64 = -5.0;
+
 #[derive(Debug, Clone)]
 pub struct TaskDto {
     pub id: usize,
     pub status: Status,
     pub description: String,
     pub priority: String,
+    pub urgency: f64,
 }
 
 impl TaskDto {
     pub fn from(id: usize, value: Task) -> Self {
+        let next_urg = Tag::from_str("next")
+            .map(|tag| if value.has_tag(&tag) { NEXT_TAG } else { 0. })
+            .unwrap_or(0.);
+
+        let due_urg = value.get_due().map(Self::due_urgency).unwrap_or_default();
+
         Self {
             id,
             status: value.get_status(),
             description: value.get_description().to_owned(),
             priority: value.get_priority().to_owned(),
+            urgency: next_urg + due_urg,
+        }
+    }
+    fn due_urgency(due: DateTime<Utc>) -> f64 {
+        let days_until_due = (due - Utc::now()).num_days() as f64;
+        // Taskwarrior uses a sigmoid-like curve clamped to [-12, 12]
+        // overdue = days_until_due < 0
+        if days_until_due < 0.0 {
+            OVERDUE
+        } else {
+            // scale down for future tasks
+            OVERDUE * (1.0 - (days_until_due / 14.0).min(1.0))
         }
     }
 }
