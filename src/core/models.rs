@@ -92,15 +92,52 @@ impl TaskDto {
             .unwrap_or(0.);
 
         let due_urg = value.get_due().map(Self::due_urgency).unwrap_or_default();
+        let blocking_urg = if value.is_blocking() {
+            BLOCKING_OTHERS
+        } else {
+            0.
+        };
+        let pri_urg = match value.get_priority() {
+            "m" => PRIORITY_MEDIUM,
+            "h" => PRIORITY_HIGH,
+            _ => 0.,
+        };
+        let act_urg = if value.is_active() {
+            ACTIVE_STARTED
+        } else {
+            0.
+        };
+
+        let age_urg = value
+            .get_entry()
+            .map(|age| (Utc::now() - age).num_days().clamp(0, 365) as f64)
+            .map(|age_days| (age_days / 365.0) * TASK_AGE)
+            .unwrap_or_default();
+
+        let proj_urg = value
+            .get_user_defined_attribute("project")
+            .map(|_| PROJECT_ASSIGNED)
+            .unwrap_or_default();
+        let wait_urg = if value.is_waiting() { WAITING } else { 0. };
+        let block_urg = if value.is_blocked() { BLOCKED } else { 0. };
 
         Self {
             id,
             status: value.get_status(),
             description: value.get_description().to_owned(),
             priority: value.get_priority().to_owned(),
-            urgency: next_urg + due_urg,
+            urgency: next_urg
+                + due_urg
+                + blocking_urg
+                + pri_urg
+                + act_urg
+                + age_urg
+                + proj_urg
+                + wait_urg
+                + block_urg,
         }
     }
+
     fn due_urgency(due: DateTime<Utc>) -> f64 {
         let days_until_due = (due - Utc::now()).num_days() as f64;
         // Taskwarrior uses a sigmoid-like curve clamped to [-12, 12]

@@ -3,12 +3,9 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use derive_more::Constructor;
-use taskchampion::{storage::Storage, Status};
+use taskchampion::{storage::Storage, Status, Task};
 
-use crate::{
-    core::{models::TaskDto, ports::TaskRepository},
-    infra::task::ArcRep,
-};
+use crate::{core::ports::TaskRepository, infra::task::ArcRep};
 
 #[derive(Constructor, Clone)]
 pub struct TaskRepo<S: Storage + Sync> {
@@ -17,7 +14,7 @@ pub struct TaskRepo<S: Storage + Sync> {
 
 #[async_trait]
 impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
-    async fn list(&self) -> Result<Vec<TaskDto>> {
+    async fn list(&self) -> Result<Vec<(usize, Task)>> {
         let mut rep = self.replica.write().await;
         let ws = rep.working_set().await?;
         let tasks = rep.pending_tasks().await.map(|tasks| {
@@ -25,7 +22,6 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
                 .into_iter()
                 .filter(|task| task.get_status() == Status::Pending && !task.is_waiting())
                 .filter_map(move |task| ws.by_uuid(task.get_uuid()).map(move |id| (id, task)))
-                .map(|(id, task)| TaskDto::from(id, task))
                 .collect()
         })?;
 

@@ -16,6 +16,7 @@ derive_more = { version = "2.1.1", features = ["constructor", "deref", "deref_mu
 dotenv = "0.15.0"
 futures = "0.3.31"
 headers-accept = "0.2.0"
+itertools = "0.14.0"
 mediatype = "0.20.0"
 rand = "0.9.2"
 ring = "0.17.14"

@@ -27,7 +27,7 @@
               {% if task.priority.len() > 0 %}{{ task.priority }}{% endif %}
             </td>
             <td class="py-2 pr-4 text-gray-600">
-              {{ task.urgency }}
+              {{ task.urgency|fmt("{:.2}") }}
             </td>
             <td class="py-2">
               <button
