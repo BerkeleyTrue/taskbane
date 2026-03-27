@@ -4,7 +4,6 @@ pub mod task;
 
 use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::livereload;
-use crate::types::ArcMut;
 use axum::routing::get;
 use tokio_util::sync::CancellationToken;
 
@@ -14,7 +13,7 @@ pub struct CreateDriverParams {
     pub shutdown_token: CancellationToken,
     pub user_service: UserService,
     pub auth_service: AuthService,
-    pub task_service: ArcMut<TaskService>,
+    pub task_service: TaskService,
 }
 
 pub fn create_drivers(params: CreateDriverParams) -> axum::Router {

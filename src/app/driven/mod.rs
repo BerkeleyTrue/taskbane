@@ -7,11 +7,11 @@ use std::sync::Arc;
 use sqlx::SqlitePool;
 use taskchampion::storage::Storage;
 
-use crate::{core::ports, infra::task::ArcMutRep};
+use crate::{core::ports, infra::task::ArcRep};
 
 pub fn create_driven<S: Storage + Sync + 'static>(
     pool: &SqlitePool,
-    task_storage: ArcMutRep<S>,
+    task_storage: ArcRep<S>,
 ) -> (
     Arc<dyn ports::UserRepository>,
     Arc<dyn ports::AuthRepository>,

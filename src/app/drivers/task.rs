@@ -5,19 +5,17 @@ use axum::{
     response::{IntoResponse, Redirect},
     routing, Router,
 };
-use taskchampion::Task;
 use tracing::info;
 
 use crate::{
-    core::services::TaskService,
+    core::{models::TaskDto, services::TaskService},
     infra::{
         auth::{authentication_middlewared, SessionAuthState},
         error::AppError,
     },
-    types::ArcMut,
 };
 
-pub fn task_routes(task_service: ArcMut<TaskService>) -> axum::Router {
+pub fn task_routes(task_service: TaskService) -> axum::Router {
     Router::new()
         .route("/task", routing::get(get_task))
         .route(
@@ -32,16 +30,14 @@ pub fn task_routes(task_service: ArcMut<TaskService>) -> axum::Router {
 #[template(path = "task.html")]
 struct TaskPage {
     is_authed: bool,
-    tasks: Vec<Task>,
+    tasks: Vec<TaskDto>,
 }
 
 pub async fn get_task(
-    task_service: State<ArcMut<TaskService>>,
+    mut task_service: State<TaskService>,
     auth_state: SessionAuthState,
 ) -> Result<impl IntoResponse, AppError> {
-    let mut task_serv = task_service.lock().await;
-
-    let tasks = task_serv.list().await.map_err(|err| {
+    let tasks = task_service.list().await.map_err(|err| {
         info!("Error getting tasks: {:?}", err);
         AppError::InternalServerError
     })?;

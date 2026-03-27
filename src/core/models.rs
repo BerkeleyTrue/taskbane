@@ -1,6 +1,7 @@
 use derive_more::{Constructor, Eq, PartialEq};
 use serde::Serialize;
 use sqlx::prelude::FromRow;
+use taskchampion::{Status, Task};
 use uuid::Uuid;
 use webauthn_rs::prelude::{Passkey, PasskeyAuthentication, PasskeyRegistration};
 
@@ -55,5 +56,24 @@ impl UserAuth {
     }
     pub fn passkey(&self) -> Vec<Passkey> {
         self.passkeys.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TaskDto {
+    pub id: usize,
+    pub status: Status,
+    pub description: String,
+    pub priority: String,
+}
+
+impl TaskDto {
+    pub fn from(id: usize, value: Task) -> Self {
+        Self {
+            id,
+            status: value.get_status(),
+            description: value.get_description().to_owned(),
+            priority: value.get_priority().to_owned(),
+        }
     }
 }

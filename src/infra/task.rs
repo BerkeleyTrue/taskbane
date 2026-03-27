@@ -5,13 +5,15 @@ use taskchampion::{
     storage::{inmemory::InMemoryStorage, Storage},
     Replica, ServerConfig,
 };
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tracing::info;
 use uuid::Uuid;
 
-pub type ArcMutRep<S> = Arc<Mutex<Replica<S>>>;
+use crate::types::ArcRw;
 
-pub async fn create_task_storage() -> Result<(ArcMutRep<InMemoryStorage>, ServerConfig)> {
+pub type ArcRep<S> = ArcRw<Replica<S>>;
+
+pub async fn create_task_storage() -> Result<(ArcRep<InMemoryStorage>, ServerConfig)> {
     let storage = InMemoryStorage::new();
     let url = env::var("TASK_URL").expect("No taskserver url provided");
 
@@ -24,7 +26,7 @@ pub async fn create_task_storage() -> Result<(ArcMutRep<InMemoryStorage>, Server
         .expect("No task secret provided")
         .into();
 
-    let replica = Arc::new(Mutex::new(Replica::new(storage)));
+    let replica = Arc::new(RwLock::new(Replica::new(storage)));
 
     let server_config = ServerConfig::Remote {
         url,
@@ -35,7 +37,7 @@ pub async fn create_task_storage() -> Result<(ArcMutRep<InMemoryStorage>, Server
     Ok((replica, server_config))
 }
 
-pub fn start_sync_loop<S: Storage + 'static>(replica: ArcMutRep<S>, config: ServerConfig) {
+pub fn start_sync_loop<S: Storage + Sync + 'static>(replica: ArcRep<S>, config: ServerConfig) {
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -53,7 +55,7 @@ pub fn start_sync_loop<S: Storage + 'static>(replica: ArcMutRep<S>, config: Serv
             info!("sync loop setup");
             loop {
                 replica
-                    .lock()
+                    .write()
                     .await
                     .sync(&mut server, false)
                     .await
