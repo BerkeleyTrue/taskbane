@@ -1,0 +1,128 @@
+/* Catppuccin Frappé palette */
+:root {
+  --ctp-rosewater: #f2d5cf;
+  --ctp-flamingo: #eebebe;
+  --ctp-pink: #f4b8e4;
+  --ctp-mauve: #ca9ee6;
+  --ctp-red: #e78284;
+  --ctp-maroon: #ea999c;
+  --ctp-peach: #ef9f76;
+  --ctp-yellow: #e5c890;
+  --ctp-green: #a6d189;
+  --ctp-teal: #81c8be;
+  --ctp-sky: #99d1db;
+  --ctp-sapphire: #85c1dc;
+  --ctp-blue: #8caaee;
+  --ctp-lavender: #babbf1;
+  --ctp-text: #c6d0f5;
+  --ctp-subtext1: #b5bfe2;
+  --ctp-subtext0: #a5adce;
+  --ctp-overlay2: #949cbb;
+  --ctp-overlay1: #838ba7;
+  --ctp-overlay0: #737994;
+  --ctp-surface2: #626880;
+  --ctp-surface1: #51576d;
+  --ctp-surface0: #414559;
+  --ctp-base: #303446;
+  --ctp-mantle: #292c3c;
+  --ctp-crust: #232634;
+}
+
+/* Map Catppuccin Frappé → Pico CSS variables */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --pico-background-color: var(--ctp-base);
+  --pico-color: var(--ctp-text);
+  --pico-muted-color: var(--ctp-subtext0);
+  --pico-muted-border-color: var(--ctp-surface1);
+
+  --pico-primary: var(--ctp-blue);
+  --pico-primary-background: var(--ctp-blue);
+  --pico-primary-border: var(--ctp-blue);
+  --pico-primary-hover: var(--ctp-lavender);
+  --pico-primary-hover-background: var(--ctp-lavender);
+  --pico-primary-hover-border: var(--ctp-lavender);
+  --pico-primary-focus: color-mix(in srgb, var(--ctp-blue) 50%, transparent);
+  --pico-primary-inverse: var(--ctp-crust);
+
+  --pico-secondary: var(--ctp-surface1);
+  --pico-secondary-background: var(--ctp-surface1);
+  --pico-secondary-border: var(--ctp-surface2);
+  --pico-secondary-hover: var(--ctp-surface2);
+  --pico-secondary-hover-background: var(--ctp-surface2);
+  --pico-secondary-hover-border: var(--ctp-overlay0);
+  --pico-secondary-focus: color-mix(in srgb, var(--ctp-surface1) 50%, transparent);
+  --pico-secondary-inverse: var(--ctp-text);
+
+  --pico-card-background-color: var(--ctp-mantle);
+  --pico-card-border-color: var(--ctp-surface0);
+  --pico-card-sectioning-background-color: var(--ctp-surface0);
+
+  --pico-code-background-color: var(--ctp-surface0);
+  --pico-code-color: var(--ctp-green);
+  --pico-code-kbd-background-color: var(--ctp-text);
+  --pico-code-kbd-color: var(--ctp-base);
+
+  --pico-form-element-background-color: var(--ctp-surface0);
+  --pico-form-element-selected-background-color: var(--ctp-surface1);
+  --pico-form-element-border-color: var(--ctp-surface2);
+  --pico-form-element-color: var(--ctp-text);
+  --pico-form-element-placeholder-color: var(--ctp-subtext0);
+  --pico-form-element-active-background-color: var(--ctp-surface1);
+  --pico-form-element-active-border-color: var(--ctp-blue);
+  --pico-form-element-focus-color: color-mix(in srgb, var(--ctp-blue) 40%, transparent);
+  --pico-form-element-invalid-border-color: var(--ctp-red);
+  --pico-form-element-invalid-active-border-color: var(--ctp-maroon);
+  --pico-form-element-invalid-focus-color: color-mix(in srgb, var(--ctp-red) 40%, transparent);
+  --pico-form-element-valid-border-color: var(--ctp-green);
+  --pico-form-element-valid-active-border-color: var(--ctp-teal);
+  --pico-form-element-valid-focus-color: color-mix(in srgb, var(--ctp-green) 40%, transparent);
+
+  --pico-switch-background-color: var(--ctp-surface2);
+  --pico-switch-checked-background-color: var(--ctp-blue);
+  --pico-switch-color: var(--ctp-text);
+
+  --pico-range-border-color: var(--ctp-surface1);
+  --pico-range-active-border-color: var(--ctp-blue);
+  --pico-range-thumb-border-color: var(--ctp-surface0);
+  --pico-range-thumb-color: var(--ctp-blue);
+  --pico-range-thumb-hover-color: var(--ctp-lavender);
+  --pico-range-thumb-active-color: var(--ctp-sapphire);
+
+  --pico-table-border-color: var(--ctp-surface1);
+  --pico-table-row-stripped-background-color: color-mix(in srgb, var(--ctp-surface0) 50%, transparent);
+
+  --pico-modal-overlay-background-color: color-mix(in srgb, var(--ctp-crust) 80%, transparent);
+
+  --pico-progress-background-color: var(--ctp-surface1);
+  --pico-progress-color: var(--ctp-blue);
+
+  --pico-tooltip-background-color: var(--ctp-surface2);
+  --pico-tooltip-color: var(--ctp-text);
+
+  --pico-accordion-border-color: var(--ctp-surface1);
+  --pico-accordion-active-summary-color: var(--ctp-blue);
+  --pico-accordion-close-summary-color: var(--ctp-text);
+  --pico-accordion-open-summary-color: var(--ctp-subtext0);
+}
+
+/* Nav logo */
+.logo {
+  height: 2rem;
+  color: var(--ctp-red);
+  display: block;
+}
+
+/* Form error messages */
+.form-error {
+  color: var(--ctp-red);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Auth forms: center and constrain width */
+main > article {
+  max-width: 28rem;
+  margin-inline: auto;
+  margin-top: 3rem;
+}

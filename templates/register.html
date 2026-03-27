@@ -4,40 +4,25 @@
 {% block title %}Register{% endblock %}
 
 {% block content %}
-  <section
-    class="w-full h-full flex flex-col px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16"
-  >
+  <article>
     <form id="register-form" hx-on:submit="register(event);">
-      <div class="mb-4">
-        <label for="username" class="block text-sm font-bold mb-2"
-          >Username:</label
-        >
-        <input
-          type="text"
-          id="username"
-          name="username"
-          class="shadow appearance-none border rounded w-full py-3 px-4 text-base leading-tight focus:outline-none focus:shadow-outline sm:py-2 sm:px-3 sm:text-sm"
-          required
-          hx-get="/auth/username_validation"
-          hx-target="#username-error"
-          hx-select="#username-error"
-          hx-swap="outerHTML"
-          hx-trigger="keyup[target.value.length > 3] changed delay:500ms"
-        />
-        <p id="username-error" class="text-red text-xs"></p>
-      </div>
-      <button
-        id="login-button"
-        type="submit"
-        class="text-ctp-base bg-ctp-sapphire hover:bg-ctp-sapphire-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-      >
-        Register in with Passkey
-      </button>
+      <label for="username">Username</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        required
+        hx-get="/auth/username_validation"
+        hx-target="#username-error"
+        hx-select="#username-error"
+        hx-swap="outerHTML"
+        hx-trigger="keyup[target.value.length > 3] changed delay:500ms"
+      />
+      <p id="username-error" class="form-error"></p>
+      <button id="login-button" type="submit">Register with Passkey</button>
     </form>
-    <a class="mt-4 text-sm text-ctp-base hover:text-ctp-sapphire" href="/login">
-      Already have an account? Login here.
-    </a>
-  </section>
+    <small><a href="/login">Already have an account? Login here.</a></small>
+  </article>
 {% endblock %}
 
 {% block scripts %}

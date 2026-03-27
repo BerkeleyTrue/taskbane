@@ -53,6 +53,7 @@
             rustfmt
 
             sqlx-cli
+            nodejs
             pnpm
             tailwindcss_4
             openssl

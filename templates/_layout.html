@@ -1,23 +1,20 @@
 {# vim:set ft=jinja: #}
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Taskbane: {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="/public/css/pico.css" />
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
   </head>
-  <body
-    class="h-dvh w-dvw bg-gradient-to-br from-ctp-blue via-ctp-lavender to-ctp-pink flex flex-col"
-  >
+  <body>
     {% include "partials/navbar.html" %}
 
-    <main class="h-100 w-100 grow">{% block content %}{% endblock %}</main>
+    <main class="container">{% block content %}{% endblock %}</main>
 
-    <footer
-      class="w-full h-10 bg-gradient-to-tl from-ctp-mauve-900 to-ctp-pink-800 text-sm text-ctp-base flex items-center justify-center border-t border-ctp-mauve-700"
-    >
+    <footer>
       <p>Insert Feet Pics</p>
     </footer>
     <script src="/public/js/livereload.js"></script>

@@ -27,7 +27,9 @@ target/
 .direnv/
 .crush/
 node_modules/
-public/css/
+./public/css/
+!./public/css/style.css
+!./public/css/pico.css
 .env
 data*
 .pre-commit-config.yaml
