@@ -4,45 +4,33 @@
 {% block title %}Tasks{% endblock %}
 
 {% block content %}
-  <section class="w-full max-w-4xl mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-6">Tasks</h1>
-    <table class="w-full border-collapse text-sm">
+  <section>
+    <h1>Tasks</h1>
+    <table id="task-table">
       <thead>
-        <tr class="border-b text-left text-gray-500">
-          <th class="py-2 pr-4 font-medium">id</th>
-          <th class="py-2 pr-4 font-medium">Desc</th>
-          <th class="py-2 pr-4 font-medium">Pri</th>
-          <th class="py-2 pr-4 font-medium">Urg</th>
-          <th class="py-2 font-medium"></th>
+        <tr>
+          <th>id</th>
+          <th>Desc</th>
+          <th>Pri</th>
+          <th>Urg</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for task in tasks %}
-          <tr class="border-b hover:bg-gray-50">
-            <td class="py-2 pr-4 text-gray-800 font-mono text-xs">
-              {{ task.id }}
-            </td>
-            <td class="py-2 pr-4">{{ task.description }}</td>
-            <td class="py-2 pr-4 text-gray-600">
-              {% if task.priority.len() > 0 %}{{ task.priority }}{% endif %}
-            </td>
-            <td class="py-2 pr-4 text-gray-600">
-              {{ task.urgency|fmt("{:.2}") }}
-            </td>
-            <td class="py-2">
-              <button
-                class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
-              >
-                View Details
-              </button>
+          <tr class="{% if task.is_blocked %}blocked{% else if task.is_blocking %}blocking{% endif %}">
+            <td><code>{{ task.id }}</code></td>
+            <td>{{ task.description }}</td>
+            <td>{% if task.priority.len() > 0 %}{{ task.priority }}{% endif %}</td>
+            <td>{{ task.urgency|fmt("{:.2}") }}</td>
+            <td>
+              <button class="outline">View Details</button>
             </td>
           </tr>
         {% endfor %}
         {% if tasks.len() == 0 %}
           <tr>
-            <td colspan="5" class="py-4 text-center text-gray-500">
-              No tasks found.
-            </td>
+            <td colspan="5"><em>No tasks found.</em></td>
           </tr>
         {% endif %}
       </tbody>

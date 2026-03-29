@@ -80,6 +80,8 @@ const BLOCKED: f64 = -5.0;
 pub struct TaskDto {
     pub id: usize,
     pub status: Status,
+    pub is_blocked: bool,
+    pub is_blocking: bool,
     pub description: String,
     pub priority: String,
     pub urgency: f64,
@@ -126,6 +128,8 @@ impl TaskDto {
             status: value.get_status(),
             description: value.get_description().to_owned(),
             priority: value.get_priority().to_owned(),
+            is_blocked: value.is_blocked(),
+            is_blocking: value.is_blocking(),
             urgency: next_urg
                 + due_urg
                 + blocking_urg

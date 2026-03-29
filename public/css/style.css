@@ -126,3 +126,18 @@ main > article {
   margin-inline: auto;
   margin-top: 3rem;
 }
+
+
+#task-table tr.blocking td {
+  color: var(--ctp-blue);
+}
+#task-table tr.blocked td {
+  color: var(--ctp-subtext0);
+}
+
+#task-table tr:not(.blocking) td {
+  font-weight: bold;
+}
+#task-table tr:not(.blocked) td {
+  font-weight: bold;
+}
