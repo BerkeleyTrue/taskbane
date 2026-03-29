@@ -58,8 +58,8 @@
   );
   --pico-secondary-inverse: var(--ctp-text);
 
-  --pico-card-background-color: var(--ctp-mantle);
-  --pico-card-border-color: var(--ctp-surface0);
+  --pico-card-background-color: var(--ctp-surface0);
+  --pico-card-border-color: transparent;
   --pico-card-sectioning-background-color: var(--ctp-surface0);
 
   --pico-code-background-color: var(--ctp-surface0);
@@ -163,22 +163,85 @@ main > article {
   margin-top: 3rem;
 }
 
-#task-table tr.blocking td {
+.pill {
+  display: inline-block;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  background-color: var(--ctp-blue);
+  color: var(--ctp-crust);
+  border: 1px solid transparent;
+}
+
+.pill.secondary {
+  background-color: var(--ctp-surface1);
+  color: var(--ctp-text);
+}
+
+.pill.contrast {
+  background-color: var(--ctp-text);
+  color: var(--ctp-base);
+}
+
+.pill.outline {
+  background-color: transparent;
+  color: var(--ctp-teal);
+  border-color: var(--ctp-teal);
+}
+
+.pill.outline.secondary {
+  background-color: transparent;
+  color: var(--ctp-text);
+  border-color: var(--ctp-surface1);
+}
+
+.pill.outline.contrast {
+  background-color: transparent;
+  color: var(--ctp-text);
+  border-color: var(--ctp-text);
+}
+
+#task-card blocking {
   color: var(--ctp-blue);
 }
-#task-table tr.blocked td {
+
+#task-card blocked {
+  color: var(--ctp-subtext0);
+  /* font-size: .8rem; */
+}
+
+#task-card header,
+#task-card footer,
+#task-card #task-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#task-card #task-urg {
+  margin-right: 8px;
+}
+
+#task-card.blocking #task-id {
+  color: var(--ctp-sapphire);
+}
+
+#task-card.blocked #task-id {
   color: var(--ctp-subtext0);
 }
 
-#task-table tr:not(.blocking) td {
-  font-weight: bold;
-}
-#task-table tr:not(.blocked) td {
-  font-weight: bold;
+#task-card.blocked,
+#task-card.blocked header,
+#task-card.blocked > footer {
+  background: var(--ctp-mantle);
+  color: var(--ctp-subtext0);
 }
 
-#task-table td:first-child,
-#task-table th:first-child {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+#task-card #task-deps {
+  color: var(--ctp-red);
+}
+#task-card #task-tags {
+  color: var(--ctp-sapphire);
 }

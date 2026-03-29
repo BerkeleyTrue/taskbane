@@ -6,60 +6,55 @@
 {% block content %}
   <section>
     <h1>Tasks</h1>
-    <table id="task-table" class="striped">
-      <thead>
-        <tr>
-          <th>id</th>
-          <th>Desc</th>
-          <th>Pri</th>
-          <th>Tags</th>
-          <th>Urg</th>
-          <th>Deps</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for task in tasks %}
-          <tr
-            class="{% if task.is_blocked %}blocked{% else if task.is_blocking %}blocking{% endif %}"
-          >
-            <td>{{ task.id }}</td>
-            <td>{{ task.description }}</td>
-            <td>
-              {% if task.priority.len() > 0 %}{{ task.priority }}{% endif %}
-            </td>
-            <td>{{ task.tags }}</td>
-            <td>{{ task.urgency|fmt("{:.2}") }}</td>
-            <td>{{ task.deps }}</td>
-            <td>
-              <a class="outline" href="#">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-eye-icon lucide-eye"
-                >
-                  <path
-                    d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
-                  />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </a>
-            </td>
-          </tr>
-        {% endfor %}
-        {% if tasks.len() == 0 %}
-          <tr>
-            <td colspan="5"><em>No tasks found.</em></td>
-          </tr>
+    {% for task in tasks %}
+      <article
+        id="task-card"
+        class="
+        {% if task.is_blocked %}
+          blocked
+        {% else if task.is_blocking %}
+          blocking
         {% endif %}
-      </tbody>
-    </table>
+
+        {% match task.due_status %}
+          {% when crate::core::models::TaskDueStatus::Due %} due
+          {% when crate::core::models::TaskDueStatus::DueSoon %} due-soon
+          {% when crate::core::models::TaskDueStatus::DueToday %} due-today
+          {% when crate::core::models::TaskDueStatus::OverDue %} overdue
+          {% when _ %}
+        {% endmatch %}"
+      >
+        <header>
+          <span id="task-id" class="">{{ task.id }}</span>
+          <div id="task-meta">
+            <div id="task-urg">{{ task.urgency|fmt("{:.2}") }}</div>
+            <div
+              id="task-pri"
+              class="pill outline
+              {% if task.priority == "l" %}
+                contrast
+              {% else if task.priority == "m" %}
+                contrast
+              {% endif %}"
+              >{{ task.priority }}
+            </div>
+          </div>
+        </header>
+        <div id="task-desc">
+          <span>{{ task.description }}</span>
+        </div>
+        <footer>
+          {% if !task.tags.is_empty() %}
+            <span id="task-tags">{{ task.tags }}</span>
+          {% endif %}
+          {% if !task.deps.is_empty() %}
+            <span id="task-deps">{{ task.deps }}</span>
+          {% endif %}
+        </footer>
+      </article>
+    {% endfor %}
+    {% if tasks.len() == 0 %}
+      <p><em>No tasks found.</em></p>
+    {% endif %}
   </section>
 {% endblock %}

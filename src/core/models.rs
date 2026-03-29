@@ -5,9 +5,10 @@ use itertools::Itertools;
 use serde::Serialize;
 use sqlx::prelude::FromRow;
 use taskchampion::{
-    chrono::{DateTime, Utc},
+    chrono::{DateTime, Duration, Local, Utc},
     Status, Tag, Task,
 };
+use tracing::info;
 use uuid::Uuid;
 use webauthn_rs::prelude::{Passkey, PasskeyAuthentication, PasskeyRegistration};
 
@@ -78,10 +79,21 @@ const WAITING: f64 = -3.0;
 const BLOCKED: f64 = -5.0;
 
 #[derive(Debug, Clone)]
+pub enum TaskDueStatus {
+    Due,
+    DueSoon,
+    DueToday,
+    OverDue,
+    Not,
+}
+
+#[derive(Debug, Clone)]
 pub struct TaskDto {
     pub id: usize,
     pub status: Status,
     pub description: String,
+    pub due: Option<String>,
+    pub due_status: TaskDueStatus,
 
     pub is_blocked: bool,
     pub is_blocking: bool,
@@ -100,6 +112,11 @@ impl TaskDto {
             .unwrap_or(0.);
 
         let due_urg = value.get_due().map(Self::due_urgency).unwrap_or_default();
+        let due_status = value
+            .get_due()
+            .map(Self::due_status)
+            .unwrap_or(TaskDueStatus::Not);
+        let due = value.get_due().map(Self::due);
         let blocking_urg = if value.is_blocking() {
             BLOCKING_OTHERS
         } else {
@@ -138,6 +155,8 @@ impl TaskDto {
             is_blocking: value.is_blocking(),
             tags: value.get_tags().filter(|tag| tag.is_user()).join(" "),
             deps: deps.iter().join(" "),
+            due,
+            due_status,
             urgency: next_urg
                 + due_urg
                 + blocking_urg
@@ -159,6 +178,35 @@ impl TaskDto {
         } else {
             // scale down for future tasks
             OVERDUE * (1.0 - (days_until_due / 14.0).min(1.0))
+        }
+    }
+
+    fn due_status(due: DateTime<Utc>) -> TaskDueStatus {
+        let now = Local::now();
+        let today = now.date_naive();
+        if due < now {
+            TaskDueStatus::OverDue
+        } else if due.date_naive() == today {
+            TaskDueStatus::DueToday
+        } else if due < now + Duration::days(7) {
+            TaskDueStatus::DueSoon
+        } else {
+            TaskDueStatus::Due
+        }
+    }
+
+    fn due(due: DateTime<Utc>) -> String {
+        let delta = due.signed_duration_since(Local::now());
+        let secs = delta.num_seconds().abs();
+
+        match secs {
+            s if s < 60 => format!("{}s", delta.num_seconds()),
+            s if s < 3_600 => format!("{}m", delta.num_minutes()),
+            s if s < 86_400 => format!("{}h", delta.num_hours()),
+            s if s < 604_800 => format!("{}d", delta.num_days()),
+            s if s < 2_592_000 => format!("{}w", delta.num_weeks()),
+            s if s < 31_536_000 => format!("{}mo", secs / 2_592_000),
+            _ => format!("{}y", secs / 31_536_000),
         }
     }
 }

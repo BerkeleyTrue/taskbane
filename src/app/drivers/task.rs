@@ -34,7 +34,7 @@ struct TaskPage {
 }
 
 pub async fn get_task(
-    mut task_service: State<TaskService>,
+    task_service: State<TaskService>,
     auth_state: SessionAuthState,
 ) -> Result<impl IntoResponse, AppError> {
     let tasks = task_service.list().await.map_err(|err| {
