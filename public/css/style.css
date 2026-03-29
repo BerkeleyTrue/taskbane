@@ -29,7 +29,7 @@
 }
 
 /* Map Catppuccin Frappé → Pico CSS variables */
-[data-theme="dark"] {
+[data-theme='dark'] {
   color-scheme: dark;
   --pico-background-color: var(--ctp-base);
   --pico-color: var(--ctp-text);
@@ -51,7 +51,11 @@
   --pico-secondary-hover: var(--ctp-surface2);
   --pico-secondary-hover-background: var(--ctp-surface2);
   --pico-secondary-hover-border: var(--ctp-overlay0);
-  --pico-secondary-focus: color-mix(in srgb, var(--ctp-surface1) 50%, transparent);
+  --pico-secondary-focus: color-mix(
+    in srgb,
+    var(--ctp-surface1) 50%,
+    transparent
+  );
   --pico-secondary-inverse: var(--ctp-text);
 
   --pico-card-background-color: var(--ctp-mantle);
@@ -70,13 +74,25 @@
   --pico-form-element-placeholder-color: var(--ctp-subtext0);
   --pico-form-element-active-background-color: var(--ctp-surface1);
   --pico-form-element-active-border-color: var(--ctp-blue);
-  --pico-form-element-focus-color: color-mix(in srgb, var(--ctp-blue) 40%, transparent);
+  --pico-form-element-focus-color: color-mix(
+    in srgb,
+    var(--ctp-blue) 40%,
+    transparent
+  );
   --pico-form-element-invalid-border-color: var(--ctp-red);
   --pico-form-element-invalid-active-border-color: var(--ctp-maroon);
-  --pico-form-element-invalid-focus-color: color-mix(in srgb, var(--ctp-red) 40%, transparent);
+  --pico-form-element-invalid-focus-color: color-mix(
+    in srgb,
+    var(--ctp-red) 40%,
+    transparent
+  );
   --pico-form-element-valid-border-color: var(--ctp-green);
   --pico-form-element-valid-active-border-color: var(--ctp-teal);
-  --pico-form-element-valid-focus-color: color-mix(in srgb, var(--ctp-green) 40%, transparent);
+  --pico-form-element-valid-focus-color: color-mix(
+    in srgb,
+    var(--ctp-green) 40%,
+    transparent
+  );
 
   --pico-switch-background-color: var(--ctp-surface2);
   --pico-switch-checked-background-color: var(--ctp-blue);
@@ -90,9 +106,17 @@
   --pico-range-thumb-active-color: var(--ctp-sapphire);
 
   --pico-table-border-color: var(--ctp-surface1);
-  --pico-table-row-stripped-background-color: color-mix(in srgb, var(--ctp-surface0) 50%, transparent);
+  --pico-table-row-stripped-background-color: color-mix(
+    in srgb,
+    var(--ctp-surface0) 50%,
+    transparent
+  );
 
-  --pico-modal-overlay-background-color: color-mix(in srgb, var(--ctp-crust) 80%, transparent);
+  --pico-modal-overlay-background-color: color-mix(
+    in srgb,
+    var(--ctp-crust) 80%,
+    transparent
+  );
 
   --pico-progress-background-color: var(--ctp-surface1);
   --pico-progress-color: var(--ctp-blue);
@@ -107,7 +131,15 @@
 }
 
 .sr-only {
-  visibility: hidden;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 /* Nav logo */
@@ -130,7 +162,6 @@ main > article {
   margin-inline: auto;
   margin-top: 3rem;
 }
-
 
 #task-table tr.blocking td {
   color: var(--ctp-blue);
