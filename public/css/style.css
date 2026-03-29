@@ -252,8 +252,8 @@ main > article {
   color: var(--ctp-blue);
 }
 
-#task-card.due #task-id,
-#task-card.due #task-desc,
+#task-card.due-soon #task-id,
+#task-card.due-soon #task-desc,
 #task-card.due-today #task-id,
 #task-card.due-today #task-desc {
   color: var(--ctp-maroon);
@@ -261,6 +261,10 @@ main > article {
 
 #task-card.overdue #task-id,
 #task-card.overdue #task-desc {
-  color: var(--ctp-red);
+  color: var(--ctp-pink);
   font-weight: bold;
+}
+#task-meta #task-due {
+  margin-right: 8px;
+  color: var(--ctp-maroon);
 }

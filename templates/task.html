@@ -16,9 +16,10 @@
           blocking
         {% endif %}
 
+
         {% match task.due_status %}
-          {% when crate::core::models::TaskDueStatus::Due %} due
-          {% when crate::core::models::TaskDueStatus::DueSoon %} due-soon
+          {% when crate::core::models::TaskDueStatus::Due %}
+          due {% when crate::core::models::TaskDueStatus::DueSoon %} due-soon
           {% when crate::core::models::TaskDueStatus::DueToday %} due-today
           {% when crate::core::models::TaskDueStatus::OverDue %} overdue
           {% when _ %}
@@ -27,6 +28,30 @@
         <header>
           <span id="task-id" class="">{{ task.id }}</span>
           <div id="task-meta">
+            {% if let Some(due) = task.due %}
+              <div id="task-due">{{ due }}</div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-watch-icon lucide-watch"
+              >
+                <path d="M12 10v2.2l1.6 1" />
+                <path
+                  d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"
+                />
+                <path
+                  d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"
+                />
+                <circle cx="12" cy="12" r="6" />
+              </svg>
+            {% endif %}
             <div id="task-urg">{{ task.urgency|fmt("{:.2}") }}</div>
             <div
               id="task-pri"
@@ -36,7 +61,8 @@
               {% else if task.priority == "m" %}
                 contrast
               {% endif %}"
-              >{{ task.priority }}
+            >
+              {{ task.priority }}
             </div>
           </div>
         </header>
