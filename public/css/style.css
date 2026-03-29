@@ -130,6 +130,17 @@
   --pico-accordion-open-summary-color: var(--ctp-subtext0);
 }
 
+body {
+  height: 100dvh;
+  width: 100dvw;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex-grow: 1;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
