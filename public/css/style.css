@@ -106,6 +106,10 @@
   --pico-accordion-open-summary-color: var(--ctp-subtext0);
 }
 
+.sr-only {
+  visibility: hidden;
+}
+
 /* Nav logo */
 .logo {
   height: 2rem;
@@ -140,4 +144,10 @@ main > article {
 }
 #task-table tr:not(.blocked) td {
   font-weight: bold;
+}
+
+#task-table td:first-child,
+#task-table th:first-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
