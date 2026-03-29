@@ -68,13 +68,16 @@ impl UserAuth {
 
 // urgency coefficient
 const NEXT_TAG: f64 = 15.0;
-const OVERDUE: f64 = 12.0;
+const DUE: f64 = 12.0;
 const BLOCKING_OTHERS: f64 = 8.0;
 const PRIORITY_HIGH: f64 = 6.0;
 const PRIORITY_MEDIUM: f64 = 3.9;
+const PRIORITY_LOW: f64 = -2.0;
+const TAG_FI: f64 = 4.0;
 const ACTIVE_STARTED: f64 = 4.0;
 const TASK_AGE: f64 = 2.0;
 const PROJECT_ASSIGNED: f64 = 1.0;
+const TAGS_COUNT: f64 = 1.0;
 const WAITING: f64 = -3.0;
 const BLOCKED: f64 = -5.0;
 
@@ -110,6 +113,9 @@ impl TaskDto {
         let next_urg = Tag::from_str("next")
             .map(|tag| if value.has_tag(&tag) { NEXT_TAG } else { 0. })
             .unwrap_or(0.);
+        let fi_urg = Tag::from_str("fi")
+            .map(|tag| if value.has_tag(&tag) { TAG_FI } else { 0. })
+            .unwrap_or(0.);
 
         let due_urg = value.get_due().map(Self::due_urgency).unwrap_or_default();
         let due_status = value
@@ -123,8 +129,9 @@ impl TaskDto {
             0.
         };
         let pri_urg = match value.get_priority() {
-            "m" => PRIORITY_MEDIUM,
             "h" => PRIORITY_HIGH,
+            "m" => PRIORITY_MEDIUM,
+            "l" => PRIORITY_LOW,
             _ => 0.,
         };
         let act_urg = if value.is_active() {
@@ -146,6 +153,14 @@ impl TaskDto {
         let wait_urg = if value.is_waiting() { WAITING } else { 0. };
         let block_urg = if value.is_blocked() { BLOCKED } else { 0. };
 
+        let user_tags: Vec<_> = value.get_tags().filter(|tag| tag.is_user()).collect();
+        let tags_urg = match user_tags.len() {
+            0 => 0.0,
+            1 => 0.8,
+            2 => 0.9,
+            _ => 1.0,
+        } * TAGS_COUNT;
+
         Self {
             id,
             status: value.get_status(),
@@ -153,32 +168,29 @@ impl TaskDto {
             priority: value.get_priority().to_owned(),
             is_blocked: value.is_blocked(),
             is_blocking: value.is_blocking(),
-            tags: value.get_tags().filter(|tag| tag.is_user()).join(" "),
+            tags: user_tags.iter().join(" "),
             deps: deps.iter().join(" "),
             due,
             due_status,
             urgency: next_urg
+                + fi_urg
                 + due_urg
                 + blocking_urg
                 + pri_urg
                 + act_urg
                 + age_urg
                 + proj_urg
+                + tags_urg
                 + wait_urg
                 + block_urg,
         }
     }
 
     fn due_urgency(due: DateTime<Utc>) -> f64 {
-        let days_until_due = (due - Utc::now()).num_days() as f64;
-        // Taskwarrior uses a sigmoid-like curve clamped to [-12, 12]
-        // overdue = days_until_due < 0
-        if days_until_due < 0.0 {
-            OVERDUE
-        } else {
-            // scale down for future tasks
-            OVERDUE * (1.0 - (days_until_due / 14.0).min(1.0))
-        }
+        // days_overdue: positive = overdue, negative = future
+        let days_overdue = (Utc::now() - due).num_seconds() as f64 / 86_400.0;
+        let term = ((days_overdue + 14.0) * 0.8 / 21.0) + 0.2;
+        term.clamp(0.2, 1.0) * DUE
     }
 
     fn due_status(due: DateTime<Utc>) -> TaskDueStatus {
