@@ -78,6 +78,7 @@ const ACTIVE_STARTED: f64 = 4.0;
 const TASK_AGE: f64 = 2.0;
 const PROJECT_ASSIGNED: f64 = 1.0;
 const TAGS_COUNT: f64 = 1.0;
+const ANNOTATIONS_COUNT: f64 = 1.0;
 const WAITING: f64 = -3.0;
 const BLOCKED: f64 = -5.0;
 
@@ -160,6 +161,12 @@ impl TaskDto {
             2 => 0.9,
             _ => 1.0,
         } * TAGS_COUNT;
+        let annote_urg = match value.get_annotations().collect::<Vec<_>>().len() {
+            0 => 0.0,
+            1 => 0.5,
+            2 => 0.7,
+            _ => 1.0,
+        } * ANNOTATIONS_COUNT;
 
         Self {
             id,
@@ -181,6 +188,7 @@ impl TaskDto {
                 + age_urg
                 + proj_urg
                 + tags_urg
+                + annote_urg
                 + wait_urg
                 + block_urg,
         }
