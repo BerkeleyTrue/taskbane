@@ -14,14 +14,20 @@ pub struct TaskRepo<S: Storage + Sync> {
 
 #[async_trait]
 impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
-    async fn list(&self) -> Result<Vec<(usize, Task)>> {
+    async fn list(&self) -> Result<Vec<(usize, Task, Vec<usize>)>> {
         let mut rep = self.replica.write().await;
         let ws = rep.working_set().await?;
         let tasks = rep.pending_tasks().await.map(|tasks| {
             tasks
                 .into_iter()
                 .filter(|task| task.get_status() == Status::Pending && !task.is_waiting())
-                .filter_map(move |task| ws.by_uuid(task.get_uuid()).map(move |id| (id, task)))
+                .filter_map(move |task| {
+                    let deps = task
+                        .get_dependencies()
+                        .filter_map(|uuid| ws.by_uuid(uuid))
+                        .collect();
+                    ws.by_uuid(task.get_uuid()).map(move |id| (id, task, deps))
+                })
                 .collect()
         })?;
 

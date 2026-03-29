@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use derive_more::{Constructor, Eq, PartialEq};
+use itertools::Itertools;
 use serde::Serialize;
 use sqlx::prelude::FromRow;
 use taskchampion::{
@@ -80,15 +81,20 @@ const BLOCKED: f64 = -5.0;
 pub struct TaskDto {
     pub id: usize,
     pub status: Status,
+    pub description: String,
+
     pub is_blocked: bool,
     pub is_blocking: bool,
-    pub description: String,
+
+    pub tags: String,
+    pub deps: String,
+
     pub priority: String,
     pub urgency: f64,
 }
 
 impl TaskDto {
-    pub fn from(id: usize, value: Task) -> Self {
+    pub fn from(id: usize, value: Task, deps: Vec<usize>) -> Self {
         let next_urg = Tag::from_str("next")
             .map(|tag| if value.has_tag(&tag) { NEXT_TAG } else { 0. })
             .unwrap_or(0.);
@@ -130,6 +136,8 @@ impl TaskDto {
             priority: value.get_priority().to_owned(),
             is_blocked: value.is_blocked(),
             is_blocking: value.is_blocking(),
+            tags: value.get_tags().filter(|tag| tag.is_user()).join(" "),
+            deps: deps.iter().join(" "),
             urgency: next_urg
                 + due_urg
                 + blocking_urg

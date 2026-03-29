@@ -12,7 +12,9 @@
           <th>id</th>
           <th>Desc</th>
           <th>Pri</th>
+          <th>Tags</th>
           <th>Urg</th>
+          <th>Deps</th>
           <th></th>
         </tr>
       </thead>
@@ -26,7 +28,9 @@
             <td>
               {% if task.priority.len() > 0 %}{{ task.priority }}{% endif %}
             </td>
+            <td>{{ task.tags }}</td>
             <td>{{ task.urgency|fmt("{:.2}") }}</td>
+            <td>{{ task.deps }}</td>
             <td>
               <a class="outline" href="#">
                 <svg

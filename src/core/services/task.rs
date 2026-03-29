@@ -12,13 +12,13 @@ pub struct TaskService {
 }
 
 impl TaskService {
-    pub async fn list(&mut self) -> Result<Vec<TaskDto>> {
+    pub async fn list(&self) -> Result<Vec<TaskDto>> {
         let tasks = self
             .repo
             .list()
             .await?
             .into_iter()
-            .map(|(id, task)| TaskDto::from(id, task))
+            .map(|(id, task, deps)| TaskDto::from(id, task, deps))
             .sorted_by_key(|task| -(task.urgency * 100.) as i64)
             .collect();
         Ok(tasks)
