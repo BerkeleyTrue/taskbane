@@ -12,7 +12,7 @@ build:
 
 [group('rust')]
 watch:
-  DATABASE_URL="$DB_URL" cargo watch -x run
+  DATABASE_URL="$DB_URL" cargo watch --ignore 'public/**' -x run
 
 [group('db')]
 migrate:

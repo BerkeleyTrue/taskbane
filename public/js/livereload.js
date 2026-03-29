@@ -12,6 +12,13 @@ function initLiveReload() {
     setTimeout(() => window.location.reload(), 1000);
   });
 
+  eventSource.addEventListener('reload-style', function() {
+    log('Style changed, reloading stylesheets...');
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(function(link) {
+      link.href = link.href.split('?')[0] + '?t=' + Date.now();
+    });
+  });
+
   eventSource.addEventListener('heartbeat', function() {
     log('Live reload heartbeat');
   });
