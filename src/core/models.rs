@@ -183,10 +183,9 @@ impl TaskDto {
 
     fn due_status(due: DateTime<Utc>) -> TaskDueStatus {
         let now = Local::now();
-        let today = now.date_naive();
         if due < now {
             TaskDueStatus::OverDue
-        } else if due.date_naive() == today {
+        } else if due < now + Duration::hours(24) {
             TaskDueStatus::DueToday
         } else if due < now + Duration::days(7) {
             TaskDueStatus::DueSoon

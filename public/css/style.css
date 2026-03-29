@@ -214,15 +214,6 @@ main > article {
   border-color: var(--ctp-text);
 }
 
-#task-card blocking {
-  color: var(--ctp-blue);
-}
-
-#task-card blocked {
-  color: var(--ctp-subtext0);
-  /* font-size: .8rem; */
-}
-
 #task-card header,
 #task-card footer,
 #task-card #task-meta {
@@ -235,14 +226,20 @@ main > article {
   margin-right: 8px;
 }
 
-#task-card.blocking #task-id {
+#task-card #task-deps {
+  color: var(--ctp-red);
+}
+#task-card #task-tags {
   color: var(--ctp-sapphire);
 }
 
-#task-card.blocked #task-id {
+/* task varients */
+#task-card.blocked #task-id,
+#task-card.blocked #task-desc {
   color: var(--ctp-subtext0);
 }
 
+/* make blocked cards dim */
 #task-card.blocked,
 #task-card.blocked header,
 #task-card.blocked > footer {
@@ -250,9 +247,20 @@ main > article {
   color: var(--ctp-subtext0);
 }
 
-#task-card #task-deps {
-  color: var(--ctp-red);
+#task-card.blocking #task-id,
+#task-card.blocking #task-desc {
+  color: var(--ctp-blue);
 }
-#task-card #task-tags {
-  color: var(--ctp-sapphire);
+
+#task-card.due #task-id,
+#task-card.due #task-desc,
+#task-card.due-today #task-id,
+#task-card.due-today #task-desc {
+  color: var(--ctp-maroon);
+}
+
+#task-card.overdue #task-id,
+#task-card.overdue #task-desc {
+  color: var(--ctp-red);
+  font-weight: bold;
 }
