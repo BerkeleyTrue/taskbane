@@ -8,6 +8,7 @@ pub struct UserAuth {
     registration: Option<PasskeyRegistration>,
     authentication: Option<PasskeyAuthentication>,
     authorize_token: Option<Uuid>,
+    is_authorized: bool,
 }
 
 impl UserAuth {
@@ -18,6 +19,7 @@ impl UserAuth {
             authentication: None,
             passkeys: Vec::new(),
             authorize_token: None,
+            is_authorized: false,
         }
     }
 
@@ -48,5 +50,9 @@ impl UserAuth {
 
     pub fn gen_authorize_token(&mut self) {
         self.authorize_token = Some(Uuid::new_v4())
+    }
+
+    pub fn is_authorized(&self) -> bool {
+        self.is_authorized
     }
 }

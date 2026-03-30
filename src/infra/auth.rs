@@ -7,6 +7,7 @@ use axum::{
     Json,
 };
 use axum_extra::TypedHeader;
+use derive_more::Display;
 use headers_accept::Accept;
 use mediatype::{names, MediaType};
 use serde::{Deserialize, Serialize};
@@ -21,11 +22,18 @@ const ACCEPT_JSON: MediaType = MediaType::new(names::APPLICATION, names::JSON);
 const ACCEPT_HTML: MediaType = MediaType::new(names::TEXT, names::HTML);
 const ACCEPT_LIST: &[MediaType; 2] = &[ACCEPT_JSON, ACCEPT_HTML];
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Display, Deserialize, Serialize)]
+pub enum AuthState {
+    Authorized,
+    Authenticated,
+    Not,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SessionAuthState {
     user_id: Uuid,
     username: String,
-    is_authed: bool,
+    auth_state: AuthState,
 }
 
 impl SessionAuthState {
@@ -33,11 +41,11 @@ impl SessionAuthState {
         SessionAuthState {
             user_id,
             username,
-            is_authed: false,
+            auth_state: AuthState::Not,
         }
     }
 
-    pub async fn maybe_from_session(session: Session) -> Result<Option<Self>> {
+    pub async fn try_from_session(session: &Session) -> Result<Option<Self>> {
         session.get::<Self>(SESSION_KEY).await.map_err(Error::from)
     }
 
@@ -57,16 +65,42 @@ impl SessionAuthState {
         self.username.clone()
     }
 
-    pub fn is_authed(&self) -> bool {
-        self.is_authed
+    pub fn auth_state(&self) -> AuthState {
+        self.auth_state.clone()
     }
 
-    pub fn update_is_authed(&self, is_authed: bool) -> Self {
-        SessionAuthState {
-            user_id: self.user_id,
-            username: self.username.clone(),
-            is_authed,
+    pub fn is_authed(&self) -> bool {
+        matches!(
+            self.auth_state,
+            AuthState::Authenticated | AuthState::Authorized
+        )
+    }
+
+    pub fn is_authorized(&self) -> bool {
+        matches!(self.auth_state, AuthState::Authorized)
+    }
+
+    pub fn authenticate(self) -> Self {
+        if matches!(self.auth_state, AuthState::Not) {
+            SessionAuthState {
+                user_id: self.user_id,
+                username: self.username.clone(),
+                auth_state: AuthState::Authenticated,
+            }
+        } else {
+            self
         }
+    }
+
+    pub fn authorize(self) -> Result<Self> {
+        if matches!(self.auth_state, AuthState::Authenticated) {
+            return Ok(SessionAuthState {
+                user_id: self.user_id,
+                username: self.username.clone(),
+                auth_state: AuthState::Authenticated,
+            });
+        }
+        Err(anyhow!("User not authenticated"))
     }
 
     pub async fn update_session(&self, session: &Session) -> Result<Self> {
@@ -172,8 +206,16 @@ pub async fn authenticed_middleware(
     request: Request,
     next: Next,
 ) -> Response {
-    if auth_state.is_some_and(|auth| auth.is_authed()) {
-        return Redirect::temporary("/task").into_response();
+    info!("auth state: {auth_state:?}");
+    match auth_state {
+        Some(SessionAuthState {
+            auth_state: AuthState::Authorized,
+            ..
+        }) => Redirect::temporary("/task").into_response(),
+        Some(SessionAuthState {
+            auth_state: AuthState::Authenticated,
+            ..
+        }) => Redirect::temporary("/authorize").into_response(),
+        _ => next.run(request).await,
     }
-    next.run(request).await
 }

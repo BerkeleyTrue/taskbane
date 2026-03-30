@@ -238,7 +238,7 @@ async fn post_validate_authen(
         })?;
 
     session_auth
-        .update_is_authed(true)
+        .authenticate()
         .update_session(&session)
         .await
         .or(Err(ApiError::InternalServerError))?;
