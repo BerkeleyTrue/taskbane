@@ -57,6 +57,11 @@ impl SessionAuthState {
             .ok_or(anyhow!("No session found"))
     }
 
+    pub async fn logout(self, session: &Session) -> Result<()> {
+        session.flush().await?;
+        Ok(())
+    }
+
     pub fn user_id(&self) -> Uuid {
         self.user_id
     }

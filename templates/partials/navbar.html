@@ -32,6 +32,8 @@
           <a href="/login" role="button" class="secondary">Login</a>
         </li>
         <li><a href="/register" role="button">Register</a></li>
+      {% else %}
+        <li><a href="/logout" role="button">Logout</a></li>
       {% endif %}
     </ul>
   </nav>

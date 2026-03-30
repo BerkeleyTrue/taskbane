@@ -19,7 +19,7 @@ use crate::infra::auth::{authenticed_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
 
 #[derive(Clone)]
-struct AuthState {
+struct AuthServices {
     user_service: UserService,
     auth_service: AuthService,
 }
@@ -38,7 +38,8 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
         .route("/auth/username_validation", get(username_validation))
         // redirect authenticated users to task
         .layer(middleware::from_fn(authenticed_middleware))
-        .with_state(AuthState {
+        .route("/logout", get(get_logout))
+        .with_state(AuthServices {
             user_service,
             auth_service,
         })
@@ -94,10 +95,10 @@ struct RegistrationParams {
 
 async fn post_start_registration(
     session: Session,
-    State(AuthState {
+    State(AuthServices {
         user_service,
         auth_service,
-    }): State<AuthState>,
+    }): State<AuthServices>,
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<CreationChallengeResponse>, ApiError> {
     let username = payload.username;
@@ -128,10 +129,10 @@ async fn post_start_registration(
 
 async fn post_validate_registration(
     session_auth: SessionAuthState,
-    State(AuthState {
+    State(AuthServices {
         user_service: _user_state,
         auth_service,
-    }): State<AuthState>,
+    }): State<AuthServices>,
     Json(cred): Json<RegisterPublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
     auth_service
@@ -190,10 +191,10 @@ struct LoginParams {
 
 async fn post_authenticate(
     session: Session,
-    State(AuthState {
+    State(AuthServices {
         user_service,
         auth_service,
-    }): State<AuthState>,
+    }): State<AuthServices>,
     Json(LoginParams { username }): Json<LoginParams>,
 ) -> Result<Json<RequestChallengeResponse>, ApiError> {
     let user = user_service.get_login(username).await.map_err(|err| {
@@ -221,10 +222,10 @@ async fn post_authenticate(
 async fn post_validate_authen(
     session: Session,
     session_auth: SessionAuthState,
-    State(AuthState {
+    State(AuthServices {
         user_service: _user_service,
         auth_service,
-    }): State<AuthState>,
+    }): State<AuthServices>,
     Json(pkc): Json<PublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
     auth_service
@@ -259,7 +260,7 @@ struct FormError {
 }
 
 async fn username_validation(
-    State(state): State<AuthState>,
+    State(state): State<AuthServices>,
     Form(input): Form<UsernameValidationParams>,
 ) -> impl IntoResponse {
     let username = input.username;
@@ -300,4 +301,13 @@ async fn username_validation(
     } else {
         Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string())
     }
+}
+
+async fn get_logout(session: Session, session_auth: Option<SessionAuthState>) -> impl IntoResponse {
+    if let Some(session_auth) = session_auth {
+        let _ = session_auth.logout(&session).await.inspect_err(|err| {
+            info!("Error flushing state: {err:?}");
+        });
+    }
+    Redirect::temporary("/")
 }
