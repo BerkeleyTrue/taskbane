@@ -18,10 +18,10 @@
 
 
         {% match task.due_status %}
-          {% when crate::core::models::TaskDueStatus::Due %}
-          due {% when crate::core::models::TaskDueStatus::DueSoon %} due-soon
-          {% when crate::core::models::TaskDueStatus::DueToday %} due-today
-          {% when crate::core::models::TaskDueStatus::OverDue %} overdue
+          {% when crate::core::models::task::TaskDueStatus::Due %} due 
+          {% when crate::core::models::task::TaskDueStatus::DueSoon %} due-soon
+          {% when crate::core::models::task::TaskDueStatus::DueToday %} due-today
+          {% when crate::core::models::task::TaskDueStatus::OverDue %} overdue
           {% when _ %}
         {% endmatch %}"
       >

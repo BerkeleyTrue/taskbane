@@ -15,14 +15,14 @@ impl UserService {
         self.repo.get_by_username(username).await.is_none()
     }
 
-    pub async fn register_user(&self, username: String) -> Result<models::User> {
+    pub async fn register_user(&self, username: String) -> Result<models::user::User> {
         let id = Uuid::new_v4();
         if !self.is_username_available(username.clone()).await {
             return Err(anyhow!("Username already exists"));
         }
         self.repo.add(id, username).await
     }
-    pub async fn get_login(&self, username: String) -> Result<models::User> {
+    pub async fn get_login(&self, username: String) -> Result<models::user::User> {
         self.repo
             .get_by_username(username)
             .await

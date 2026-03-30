@@ -5,7 +5,7 @@ use webauthn_rs::prelude::{
     AuthenticationResult, Passkey, PasskeyAuthentication, PasskeyRegistration,
 };
 
-use crate::core::models::UserAuth;
+use crate::core::models::user_auth::UserAuth;
 
 #[async_trait]
 pub trait AuthRepository: Send + Sync {

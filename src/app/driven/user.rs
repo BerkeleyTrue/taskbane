@@ -1,4 +1,4 @@
-use crate::core::{models::User, ports::UserRepository};
+use crate::core::{models::user::User, ports::UserRepository};
 use anyhow::{anyhow, Error, Result};
 use async_trait::async_trait;
 use sqlx::SqlitePool;

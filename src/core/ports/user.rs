@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::core::models::User;
+use crate::core::models::user::User;
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {

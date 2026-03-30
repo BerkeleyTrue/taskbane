@@ -12,7 +12,7 @@ use webauthn_rs::{
 };
 
 use crate::core::{
-    models::{User, UserAuth},
+    models::{user::User, user_auth::UserAuth},
     ports::AuthRepository,
 };
 

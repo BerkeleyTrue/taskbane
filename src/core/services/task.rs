@@ -4,7 +4,7 @@ use anyhow::Result;
 use derive_more::Constructor;
 use itertools::Itertools;
 
-use crate::core::{models::TaskDto, ports::TaskRepository};
+use crate::core::{models::task::TaskDto, ports::TaskRepository};
 
 #[derive(Constructor, Clone)]
 pub struct TaskService {

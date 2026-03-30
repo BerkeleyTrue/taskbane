@@ -8,7 +8,7 @@ use webauthn_rs::prelude::{
     AuthenticationResult, Passkey, PasskeyAuthentication, PasskeyRegistration,
 };
 
-use crate::core::{models::UserAuth, ports::AuthRepository};
+use crate::core::{models::user_auth::UserAuth, ports::AuthRepository};
 
 #[derive(Debug)]
 struct AuthStateDb {
@@ -32,6 +32,7 @@ impl From<AuthStateDb> for UserAuth {
             passkeys,
             registration,
             authentication,
+            authorize_token: None,
         }
     }
 }

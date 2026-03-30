@@ -8,7 +8,7 @@ use axum::{
 use tracing::info;
 
 use crate::{
-    core::{models::TaskDto, services::TaskService},
+    core::{models::task::TaskDto, services::TaskService},
     infra::{
         auth::{authentication_middlewared, SessionAuthState},
         error::AppError,
