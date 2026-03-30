@@ -176,12 +176,13 @@ enum ResponseType {
     Text,
 }
 
-pub async fn authentication_middlewared(
+/// redirect unauth users, protecting routes
+pub async fn unauth_middleware(
     accept: Option<TypedHeader<Accept>>,
     auth_state: Option<SessionAuthState>,
     request: Request,
     next: Next,
-) -> Response {
+) -> impl IntoResponse {
     let format = accept
         .and_then(|TypedHeader(accept)| accept.negotiate(ACCEPT_LIST))
         .map(|media_type| {
@@ -192,26 +193,44 @@ pub async fn authentication_middlewared(
         })
         .unwrap_or(ResponseType::Text);
 
-    if auth_state.is_none_or(|auth| !auth.is_authed()) {
-        return match format {
+    match auth_state {
+        // we know the user, and the user has permission to view task
+        Some(SessionAuthState {
+            auth_state: AuthState::Authorized,
+            ..
+        }) => next.run(request).await,
+
+        // we know the user, but they don't have permission
+        Some(SessionAuthState {
+            auth_state: AuthState::Authenticated,
+            ..
+        }) => match format {
             ResponseType::Json => (
-                http::StatusCode::UNAUTHORIZED,
+                http::StatusCode::FORBIDDEN,
                 Json(ErrorMessage::new("unauthorized")),
             )
                 .into_response(),
+            ResponseType::Text => Redirect::temporary("/authorize-user").into_response(),
+        },
+        // who are you?
+        _ => match format {
+            ResponseType::Json => (
+                http::StatusCode::UNAUTHORIZED,
+                Json(ErrorMessage::new("unauthenticated user")),
+            )
+                .into_response(),
             ResponseType::Text => Redirect::temporary("/login").into_response(),
-        };
+        },
     }
-
-    next.run(request).await
 }
 
+/// redirect authenticated users
 pub async fn authenticed_middleware(
     auth_state: Option<SessionAuthState>,
     request: Request,
     next: Next,
 ) -> Response {
-    info!("auth state: {auth_state:?}");
+    info!("authenticated auth state: {auth_state:?}");
     match auth_state {
         Some(SessionAuthState {
             auth_state: AuthState::Authorized,
@@ -220,7 +239,23 @@ pub async fn authenticed_middleware(
         Some(SessionAuthState {
             auth_state: AuthState::Authenticated,
             ..
-        }) => Redirect::temporary("/authorize").into_response(),
+        }) => Redirect::temporary("/authorize-user").into_response(),
+        _ => next.run(request).await,
+    }
+}
+
+/// redirect authorized users
+pub async fn authorized_middleware(
+    auth_state: Option<SessionAuthState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    info!("authorized auth state: {auth_state:?}");
+    match auth_state {
+        Some(SessionAuthState {
+            auth_state: AuthState::Authorized,
+            ..
+        }) => Redirect::temporary("/task").into_response(),
         _ => next.run(request).await,
     }
 }

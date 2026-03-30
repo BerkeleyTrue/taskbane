@@ -9,13 +9,14 @@ use axum::{
 use serde::Deserialize;
 use tower_sessions::Session;
 use tracing::info;
+use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, PublicKeyCredential, RegisterPublicKeyCredential,
     RequestChallengeResponse,
 };
 
 use crate::core::services::{AuthService, UserService};
-use crate::infra::auth::{authenticed_middleware, SessionAuthState};
+use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
 
 #[derive(Clone)]
@@ -38,6 +39,9 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
         .route("/auth/username_validation", get(username_validation))
         // redirect authenticated users to task
         .layer(middleware::from_fn(authenticed_middleware))
+        .route("/authorize-user", get(get_validate_user))
+        // .route("/auth/validate-user", post(post_validate_user))
+        .layer(middleware::from_fn(authorized_middleware))
         .route("/logout", get(get_logout))
         .with_state(AuthServices {
             user_service,
@@ -302,6 +306,28 @@ async fn username_validation(
         Html("<p class='text-ctp-red text-xs'>Error rendering form error</p>".to_string())
     }
 }
+
+#[derive(Debug, Clone, Template)]
+#[template(path = "validate-user.html")]
+struct ValidateUser {
+    token: Uuid,
+    is_authed: bool,
+}
+async fn get_validate_user(
+    State(AuthServices {
+        user_service,
+        auth_service,
+    }): State<AuthServices>,
+) -> Result<impl IntoResponse, AppError> {
+    let templ = ValidateUser {
+        token: Uuid::new_v4(),
+        is_authed: true,
+    };
+
+    Ok(Html(templ.render()?))
+}
+
+// async fn post_validate_user() -> Result<Json<>, ApiError> {
 
 async fn get_logout(session: Session, session_auth: Option<SessionAuthState>) -> impl IntoResponse {
     if let Some(session_auth) = session_auth {

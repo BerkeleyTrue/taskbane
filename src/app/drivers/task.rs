@@ -10,7 +10,7 @@ use tracing::info;
 use crate::{
     core::{models::task::TaskDto, services::TaskService},
     infra::{
-        auth::{authentication_middlewared, SessionAuthState},
+        auth::{unauth_middleware, SessionAuthState},
         error::AppError,
     },
 };
@@ -22,7 +22,7 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
             "/tasks",
             routing::get(async || Redirect::permanent("/task")),
         )
-        .layer(middleware::from_fn(authentication_middlewared))
+        .layer(middleware::from_fn(unauth_middleware))
         .with_state(task_service)
 }
 
