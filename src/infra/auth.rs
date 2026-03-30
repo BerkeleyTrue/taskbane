@@ -101,22 +101,34 @@ impl<S> OptionalFromRequestParts<S> for SessionAuthState
 where
     S: Send + Sync,
 {
-    type Rejection = (http::StatusCode, &'static str);
+    type Rejection = Response;
 
     async fn from_request_parts(
         req: &mut axum::http::request::Parts,
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
-        let session = Session::from_request_parts(req, state).await?;
-        SessionAuthState::maybe_from_session(session)
+        let session = Session::from_request_parts(req, state)
+            .await
+            .map_err(|err| err.into_response())?;
+        let auth_state_res = SessionAuthState::try_from_session(&session)
             .await
             .map_err(|err| {
                 info!("Failed to parse optional session from store: {:?}", err);
+                Redirect::temporary("/").into_response()
+            });
+
+        if auth_state_res.is_err() {
+            // TODO: redirect to login from here
+            session.flush().await.map_err(|err| {
+                info!("Failed to flush errant session from store: {:?}", err);
                 (
                     http::StatusCode::INTERNAL_SERVER_ERROR,
                     "Internal server Error",
                 )
-            })
+                    .into_response()
+            })?;
+        }
+        auth_state_res
     }
 }
 
