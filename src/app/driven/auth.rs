@@ -10,33 +10,6 @@ use webauthn_rs::prelude::{
 
 use crate::core::{models::user_auth::UserAuth, ports::AuthRepository};
 
-#[derive(Debug)]
-struct AuthStateDb {
-    user_id: Uuid,
-    passkeys: String,
-    registration: Option<String>,
-    authentication: Option<String>,
-}
-
-impl From<AuthStateDb> for UserAuth {
-    fn from(value: AuthStateDb) -> Self {
-        let registration = value
-            .registration
-            .and_then(|r| serde_json::from_str::<PasskeyRegistration>(&r).ok());
-        let authentication = value
-            .authentication
-            .and_then(|a| serde_json::from_str::<PasskeyAuthentication>(&a).ok());
-        let passkeys = serde_json::from_str::<Vec<Passkey>>(&value.passkeys).unwrap_or_default();
-        Self {
-            user_id: value.user_id,
-            passkeys,
-            registration,
-            authentication,
-            authorize_token: None,
-        }
-    }
-}
-
 pub struct AuthSqlRepo {
     pool: SqlitePool,
 }
