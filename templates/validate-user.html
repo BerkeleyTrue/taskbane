@@ -4,21 +4,26 @@
 {% block title %}Link your TaskWarrior database{% endblock %}
 
 {% block content %}
-  <article>
+  <article id="authorize-user">
     <hgroup>
       <h1>Link your TaskWarrior database</h1>
-      <p>Before you can view your tasks, you need to verify ownership of your TaskWarrior database.</p>
+      <p>
+        Before you can view your tasks, you need to verify ownership of your
+        TaskWarrior database.
+      </p>
     </hgroup>
     <ol>
-      <li>Add the following task to your TaskWarrior database:
+      <li>
+        Add the following task to your TaskWarrior database:
         <pre><code>task add "taskbane:{{ token }}"</code></pre>
       </li>
-      <li>Sync your database:
+      <li>
+        Sync your database:
         <pre><code>task sync</code></pre>
       </li>
-      <li>
-        <a href="/auth/verify" role="button">Verify</a>
-      </li>
     </ol>
+    <footer>
+      <a href="/auth/authorize-user" role="button">Verify</a>
+    </footer>
   </article>
 {% endblock %}

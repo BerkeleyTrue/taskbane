@@ -268,3 +268,8 @@ main > article {
   margin-right: 8px;
   color: var(--ctp-maroon);
 }
+
+#authorize-user footer {
+  display: flex;
+  justify-content: flex-end;
+}
