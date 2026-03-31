@@ -80,8 +80,9 @@ impl AuthService {
             Some(uuid) => uuid,
             None => {
                 let new_token = Uuid::new_v4();
-                // TODO: save token
-                // self.repo.
+                self.repo
+                    .update_authorization_token(user.id(), new_token)
+                    .await?;
                 new_token
             }
         };

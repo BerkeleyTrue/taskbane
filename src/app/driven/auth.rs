@@ -230,6 +230,22 @@ impl AuthRepository for AuthSqlRepo {
                 .and_then(|token| Uuid::parse_str(&token).ok())
         })
     }
+
+    async fn update_authorization_token(&self, user_id: Uuid, token: Uuid) -> Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE auth
+                SET authorize_token = ?
+                WHERE user_id = ?
+            "#,
+            token,
+            user_id,
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 pub fn create_auth_repo(pool: &SqlitePool) -> Arc<AuthSqlRepo> {
