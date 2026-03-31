@@ -258,6 +258,7 @@ async fn post_validate_authen(
 #[derive(Deserialize, Debug)]
 struct UsernameValidationParams {
     username: String,
+    is_free: bool,
 }
 
 #[derive(Debug, Template)]
@@ -269,9 +270,8 @@ struct FormError {
 
 async fn username_validation(
     State(state): State<AuthServices>,
-    Form(input): Form<UsernameValidationParams>,
+    Form(UsernameValidationParams { username, is_free }): Form<UsernameValidationParams>,
 ) -> impl IntoResponse {
-    let username = input.username;
     let id = "username-error".to_string();
     let mut error = Option::None;
     if username.is_empty() {
@@ -298,10 +298,14 @@ async fn username_validation(
         }
     }
 
-    let is_not_available = !(state.user_service.is_username_available(username).await);
+    let is_available = state.user_service.is_username_available(username).await;
     let form_error = FormError {
         id: id.clone(),
-        error: is_not_available.then(|| "Username is already taken".to_string()),
+        error: match (is_available, is_free) {
+            (true, false) => Some("No user found for username".to_string()),
+            (false, true) => Some("Username isn't available".to_string()),
+            _ => None,
+        },
     };
 
     if let Ok(body) = form_error.render() {

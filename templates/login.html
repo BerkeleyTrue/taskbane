@@ -12,11 +12,11 @@
         id="username"
         name="username"
         required
-        hx-get="/auth/username_validation"
+        hx-get="/auth/username_validation?is_free=false"
         hx-target="#username-error"
         hx-select="#username-error"
         hx-swap="outerHTML"
-        hx-trigger="keyup[target.value.length > 3] changed delay:500ms"
+        hx-trigger="keyup[target.value.length > 2] changed delay:500ms"
       />
       <p id="username-error" class="form-error"></p>
       <button id="login-button" type="submit">Login with Passkey</button>
