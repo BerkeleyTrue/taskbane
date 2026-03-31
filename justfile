@@ -14,9 +14,12 @@ build:
 watch:
   DATABASE_URL="$DB_URL" cargo watch --ignore 'public/**' -x run
 
-# run pending migrations 
+# run pending migrations
 [group('db')]
 migrate:
+  DB_PATH=$(echo "$DB_URL" | sed 's|sqlite://||'); \
+  mkdir -p "$(dirname "$DB_PATH")"; \
+  [ -f "$DB_PATH" ] || touch "$DB_PATH"; \
   sqlx migrate run --database-url "$DB_URL"
 
 # create a new empty migration file in migrations
