@@ -38,16 +38,18 @@ impl AuthRepository for AuthSqlRepo {
             .registration()
             .and_then(|r| serde_json::to_string(&r).ok());
 
+        let auth_state = auth.auth_state();
         sqlx::query!(
             r#"
-                INSERT INTO auth (user_id, registration, authentication, passkeys)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO auth (user_id, registration, authentication, passkeys, auth_state)
+                VALUES (?, ?, ?, ?, ?)
                 returning user_id as `user_id:uuid::Uuid`
             "#,
             user_id,
             registration,
             None::<String>,
             "[]",
+            auth_state,
         )
         .fetch_one(&self.pool)
         .await?;

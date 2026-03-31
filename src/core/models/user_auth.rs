@@ -30,13 +30,16 @@ impl UserAuth {
         }
     }
 
+    #[must_use]
     pub fn user_id(&self) -> Uuid {
         self.user_id
     }
 
+    #[must_use]
     pub fn registration(&self) -> Option<PasskeyRegistration> {
         self.registration.clone()
     }
+    #[must_use]
     pub fn authentication(&self) -> Option<PasskeyAuthentication> {
         self.authentication.clone()
     }
@@ -44,18 +47,25 @@ impl UserAuth {
         self.authentication = authentication;
     }
 
-    pub fn passkey(&self) -> Vec<Passkey> {
+    #[must_use]
+    pub fn passkeys(&self) -> Vec<Passkey> {
         self.passkeys.clone()
     }
     pub fn set_passkey(&mut self, passkeys: Vec<Passkey>) {
         self.passkeys = passkeys;
     }
 
+    #[must_use]
     pub fn authorize_token(&self) -> Uuid {
         self.authorize_token
     }
 
     pub fn is_authorized(&self) -> bool {
         matches!(self.auth_state, UserAuthorizedState::Authorized)
+    }
+
+    #[must_use]
+    pub fn auth_state(&self) -> UserAuthorizedState {
+        self.auth_state.clone()
     }
 }
