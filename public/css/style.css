@@ -271,5 +271,5 @@ main > article {
 
 #authorize-user footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
 }

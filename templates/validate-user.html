@@ -23,6 +23,12 @@
       </li>
     </ol>
     <footer>
+      <button
+        onclick="navigator.clipboard.writeText(this.dataset.value).then(() => { this.textContent = 'Copied!'; setTimeout(() => this.textContent = 'Copy to Clipboard', 2000) })"
+        data-value="task add 'taskbane:{{ token }}'"
+      >
+        Copy To Clipboard
+      </button>
       <a href="/auth/authorize-user" role="button">Verify</a>
     </footer>
   </article>
