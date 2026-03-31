@@ -25,7 +25,7 @@ pub enum ApiError {
     NotFound,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ErrorMessage {
     pub message: String,
 }

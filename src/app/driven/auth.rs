@@ -55,7 +55,7 @@ impl AuthRepository for AuthSqlRepo {
         Ok(auth)
     }
 
-    async fn get_registration(&self, user_id: &Uuid) -> Result<PasskeyRegistration> {
+    async fn get_registration(&self, user_id: Uuid) -> Result<PasskeyRegistration> {
         let maybe_registration = sqlx::query!(
             r#"
                 SELECT registration FROM auth
@@ -78,7 +78,7 @@ impl AuthRepository for AuthSqlRepo {
         Ok(registration)
     }
 
-    async fn get_passkeys(&self, user_id: &Uuid) -> Result<Vec<Passkey>> {
+    async fn get_passkeys(&self, user_id: Uuid) -> Result<Vec<Passkey>> {
         sqlx::query!(
             r#"
                 SELECT passkeys FROM auth
@@ -93,7 +93,7 @@ impl AuthRepository for AuthSqlRepo {
         .ok_or(anyhow!("No passkeys found for user"))
     }
 
-    async fn update_passkey(&self, user_id: &Uuid, pk: Passkey) -> Result<()> {
+    async fn update_passkey(&self, user_id: Uuid, pk: Passkey) -> Result<()> {
         let mut passkeys = sqlx::query!(
             r#"
                 SELECT passkeys FROM auth
@@ -126,7 +126,7 @@ impl AuthRepository for AuthSqlRepo {
         Ok(())
     }
 
-    async fn update_authen(&self, user_id: &Uuid, pka: PasskeyAuthentication) -> Result<()> {
+    async fn update_authen(&self, user_id: Uuid, pka: PasskeyAuthentication) -> Result<()> {
         // make sure user has existing auth
         sqlx::query!(
             r#"
@@ -157,7 +157,7 @@ impl AuthRepository for AuthSqlRepo {
         .map(|_| ())
     }
 
-    async fn get_authentication(&self, user_id: &Uuid) -> Result<PasskeyAuthentication> {
+    async fn get_authentication(&self, user_id: Uuid) -> Result<PasskeyAuthentication> {
         sqlx::query!(
             r#"
                 SELECT authentication FROM auth
@@ -174,7 +174,7 @@ impl AuthRepository for AuthSqlRepo {
 
     async fn update_credentials(
         &self,
-        user_id: &Uuid,
+        user_id: Uuid,
         credentials: AuthenticationResult,
     ) -> Result<()> {
         let mut passkeys = sqlx::query!(
@@ -212,6 +212,23 @@ impl AuthRepository for AuthSqlRepo {
         .await?;
 
         Ok(())
+    }
+
+    async fn get_authorization_token(&self, user_id: Uuid) -> Result<Option<Uuid>> {
+        sqlx::query!(
+            r#"
+                SELECT authorize_token FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(anyhow!("No authorize token found for user"))
+        .map(|r| {
+            r.authorize_token
+                .and_then(|token| Uuid::parse_str(&token).ok())
+        })
     }
 }
 

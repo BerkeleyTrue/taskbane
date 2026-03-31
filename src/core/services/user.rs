@@ -22,9 +22,9 @@ impl UserService {
         }
         self.repo.add(id, username).await
     }
-    pub async fn get_login(&self, username: String) -> Result<models::user::User> {
+    pub async fn get_user(&self, username: &str) -> Result<models::user::User> {
         self.repo
-            .get_by_username(username)
+            .get_by_username(username.to_owned())
             .await
             .ok_or(anyhow!("No user found for username"))
     }

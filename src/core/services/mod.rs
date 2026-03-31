@@ -27,9 +27,10 @@ pub fn create_services(
         webauthn,
     }: CreateServiceParams,
 ) -> (user::UserService, task::TaskService, auth::AuthService) {
+    let user_service = user::UserService::new(user_repo);
     (
-        user::UserService::new(user_repo),
+        user_service.clone(),
         task::TaskService::new(task_repo),
-        auth::AuthService::new(auth_repo, webauthn),
+        auth::AuthService::new(auth_repo, webauthn, user_service),
     )
 }

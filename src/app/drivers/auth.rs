@@ -140,7 +140,7 @@ async fn post_validate_registration(
     Json(cred): Json<RegisterPublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
     auth_service
-        .validate_registration(&session_auth.user_id(), &cred)
+        .validate_registration(session_auth.user_id(), &cred)
         .await
         .or(Err(ApiError::BadRequest {
             message: "Failed to validate credentioals".to_string(),
@@ -201,14 +201,14 @@ async fn post_authenticate(
     }): State<AuthServices>,
     Json(LoginParams { username }): Json<LoginParams>,
 ) -> Result<Json<RequestChallengeResponse>, ApiError> {
-    let user = user_service.get_login(username).await.map_err(|err| {
+    let user = user_service.get_user(&username).await.map_err(|err| {
         info!("get login err: {err:}");
         ApiError::BadRequest {
             message: "No user found for username".to_string(),
         }
     })?;
 
-    let rcr = auth_service.login(&user.id()).await.map_err(|err| {
+    let rcr = auth_service.login(user.id()).await.map_err(|err| {
         info!("Error during login: {:?}", err);
         ApiError::BadRequest {
             message: "Failed to login user".to_string(),
@@ -233,7 +233,7 @@ async fn post_validate_authen(
     Json(pkc): Json<PublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
     auth_service
-        .validate_login(&session_auth.user_id(), &pkc)
+        .validate_login(session_auth.user_id(), &pkc)
         .await
         .map_err(|err| {
             info!("Error validating login: {:?}", err);
@@ -314,13 +314,21 @@ struct ValidateUser {
     is_authed: bool,
 }
 async fn get_validate_user(
-    State(AuthServices {
-        user_service,
-        auth_service,
-    }): State<AuthServices>,
+    session_auth: SessionAuthState,
+    State(AuthServices { auth_service, .. }): State<AuthServices>,
 ) -> Result<impl IntoResponse, AppError> {
+    let username = session_auth.username();
+
+    let token = auth_service
+        .get_authorization(username)
+        .await
+        .map_err(|err| {
+            info!("auth err: {err:?}");
+            AppError::InternalServerError
+        })?;
+
     let templ = ValidateUser {
-        token: Uuid::new_v4(),
+        token,
         is_authed: true,
     };
 

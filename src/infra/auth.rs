@@ -66,8 +66,8 @@ impl SessionAuthState {
         self.user_id
     }
 
-    pub fn username(&self) -> String {
-        self.username.clone()
+    pub fn username(&self) -> &str {
+        &self.username
     }
 
     pub fn auth_state(&self) -> AuthState {

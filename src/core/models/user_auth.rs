@@ -1,14 +1,21 @@
 use uuid::Uuid;
 use webauthn_rs::prelude::{Passkey, PasskeyAuthentication, PasskeyRegistration};
 
+#[derive(Debug, Clone, sqlx::Type)]
+#[sqlx(type_name = "TEXT", rename_all = "lowercase")]
+pub enum UserAuthorizedState {
+    Not,
+    Authorized,
+}
+
 #[derive(Debug, Clone)]
 pub struct UserAuth {
     user_id: Uuid,
     passkeys: Vec<Passkey>,
     registration: Option<PasskeyRegistration>,
     authentication: Option<PasskeyAuthentication>,
-    authorize_token: Option<Uuid>,
-    is_authorized: bool,
+    authorize_token: Uuid,
+    auth_state: UserAuthorizedState,
 }
 
 impl UserAuth {
@@ -18,8 +25,8 @@ impl UserAuth {
             registration: Some(registration),
             authentication: None,
             passkeys: Vec::new(),
-            authorize_token: None,
-            is_authorized: false,
+            authorize_token: Uuid::new_v4(),
+            auth_state: UserAuthorizedState::Not,
         }
     }
 
@@ -44,15 +51,11 @@ impl UserAuth {
         self.passkeys = passkeys;
     }
 
-    pub fn authorize_token(&self) -> Option<Uuid> {
+    pub fn authorize_token(&self) -> Uuid {
         self.authorize_token
     }
 
-    pub fn gen_authorize_token(&mut self) {
-        self.authorize_token = Some(Uuid::new_v4())
-    }
-
     pub fn is_authorized(&self) -> bool {
-        self.is_authorized
+        matches!(self.auth_state, UserAuthorizedState::Authorized)
     }
 }
