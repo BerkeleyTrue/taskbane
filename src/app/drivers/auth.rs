@@ -26,7 +26,7 @@ struct AuthServices {
 }
 
 pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> axum::Router<S> {
-    Router::new()
+    let unauthen_routes = Router::new()
         .route("/register", get(get_register))
         .route("/auth/register", post(post_start_registration))
         .route(
@@ -39,10 +39,14 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
         .route("/auth/username_validation", get(username_validation))
         // redirect authenticated users to task
         .layer(middleware::from_fn(authenticed_middleware))
+        .route("/logout", get(get_logout));
+
+    Router::new()
+        // unauthorized routes
         .route("/authorize-user", get(get_validate_user))
         // .route("/auth/validate-user", post(post_validate_user))
         .layer(middleware::from_fn(authorized_middleware))
-        .route("/logout", get(get_logout))
+        .merge(unauthen_routes)
         .with_state(AuthServices {
             user_service,
             auth_service,

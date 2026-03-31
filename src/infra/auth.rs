@@ -149,6 +149,7 @@ where
         let session = Session::from_request_parts(req, state)
             .await
             .map_err(|err| err.into_response())?;
+
         let auth_state_res = SessionAuthState::try_from_session(&session)
             .await
             .map_err(|err| {
