@@ -252,7 +252,7 @@ async fn post_validate_authen(
         .await
         .or(Err(ApiError::InternalServerError))?;
 
-    Ok(Redirect::to("/task"))
+    Ok(Redirect::to("/authorize-user"))
 }
 
 #[derive(Deserialize, Debug)]
