@@ -219,7 +219,7 @@ impl AuthRepository for AuthSqlRepo {
     async fn get_authorization_token(&self, user_id: Uuid) -> Result<Option<Uuid>> {
         sqlx::query!(
             r#"
-                SELECT authorize_token FROM auth
+                SELECT authorize_token as `authorize_token:uuid::Uuid` FROM auth
                 WHERE user_id = ?
             "#,
             user_id
@@ -227,13 +227,22 @@ impl AuthRepository for AuthSqlRepo {
         .fetch_optional(&self.pool)
         .await?
         .ok_or(anyhow!("No authorize token found for user"))
-        .map(|r| {
-            r.authorize_token
-                .and_then(|token| Uuid::parse_str(&token).ok())
-        })
+        .map(|r| r.authorize_token)
     }
 
     async fn update_authorization_token(&self, user_id: Uuid, token: Uuid) -> Result<()> {
+        // make sure user has existing auth
+        sqlx::query!(
+            r#"
+                SELECT auth_state FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id,
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(anyhow!("No auth found for user"))?;
+
         sqlx::query!(
             r#"
                 UPDATE auth
