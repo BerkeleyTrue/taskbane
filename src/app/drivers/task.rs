@@ -11,7 +11,7 @@ use crate::{
     core::{models::task::TaskDto, services::TaskService},
     infra::{
         auth::{unauth_middleware, SessionAuthState},
-        error::AppError,
+        error::{AppError, Flashes},
     },
 };
 
@@ -31,6 +31,7 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
 struct TaskPage {
     is_authed: bool,
     tasks: Vec<TaskDto>,
+    flashes: Flashes,
 }
 
 pub async fn get_task(
@@ -45,6 +46,7 @@ pub async fn get_task(
     let templ = TaskPage {
         is_authed: auth_state.is_authed(),
         tasks,
+        flashes: None,
     };
     Ok(axum::response::Html(templ.render()?))
 }

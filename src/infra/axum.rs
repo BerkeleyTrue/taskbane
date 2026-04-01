@@ -13,7 +13,7 @@ use tower_http::{compression, services::ServeDir, trace};
 use tracing::{info, info_span, Span};
 
 use crate::infra::{
-    error::{ApiError, AppError, ErrorMessage},
+    error::{ApiError, AppError, ErrorMessage, Flashes},
     tower_session::MySession,
 };
 
@@ -24,6 +24,7 @@ impl IntoResponse for AppError {
         struct Tmpl {
             err: AppError,
             is_authed: bool,
+            flashes: Flashes,
         }
 
         let status = match &self {
@@ -35,6 +36,7 @@ impl IntoResponse for AppError {
         let tmpl = Tmpl {
             err: self,
             is_authed: false,
+            flashes: None,
         };
 
         if let Ok(body) = tmpl.render() {

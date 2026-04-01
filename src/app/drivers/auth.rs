@@ -1,13 +1,11 @@
 use askama::Template;
 use axum::extract::State;
-use axum::http::Response;
-use axum::response::{Html, IntoResponse, Redirect};
+use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::{middleware, Form, Router};
 use axum::{
     routing::{get, post},
     Json,
 };
-use futures::TryFutureExt;
 use serde::Deserialize;
 use tower_sessions::Session;
 use tracing::info;
@@ -19,7 +17,7 @@ use webauthn_rs::prelude::{
 
 use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
-use crate::infra::error::{ApiError, AppError};
+use crate::infra::error::{flash_err, ApiError, AppError, FlashTempl, Flashes};
 
 #[derive(Clone)]
 struct AuthServices {
@@ -65,9 +63,13 @@ pub fn auth_routes<S>(
 #[template(path = "register.html")]
 struct RegisterTemplate {
     is_authed: bool,
+    flashes: Flashes,
 }
 async fn get_register() -> Result<impl IntoResponse, AppError> {
-    let template = RegisterTemplate { is_authed: false };
+    let template = RegisterTemplate {
+        is_authed: false,
+        flashes: None,
+    };
     Ok(Html(template.render()?))
 }
 
@@ -167,9 +169,13 @@ async fn post_validate_registration(
 #[template(path = "login.html")]
 struct LoginTemplate {
     is_authed: bool,
+    flashes: Flashes,
 }
 async fn get_login() -> Result<impl IntoResponse, AppError> {
-    let template = LoginTemplate { is_authed: false };
+    let template = LoginTemplate {
+        is_authed: false,
+        flashes: None,
+    };
     Ok(Html(template.render()?))
 }
 
@@ -332,6 +338,7 @@ async fn username_validation(
 struct ValidateUser {
     token: Uuid,
     is_authed: bool,
+    flashes: Flashes,
 }
 async fn get_validate_user(
     session_auth: SessionAuthState,
@@ -350,6 +357,7 @@ async fn get_validate_user(
     let templ = ValidateUser {
         token,
         is_authed: true,
+        flashes: None,
     };
 
     Ok(Html(templ.render()?))
@@ -363,33 +371,32 @@ async fn post_authorize_user(
         auth_service,
         ..
     }): State<AuthServices>,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<impl IntoResponse, Response> {
     let username = session_auth.username();
-    let task = task_service
-        .get_authorize_task()
-        .await
-        .or(Err(ApiError::BadRequest {
-            message: "Failed to find authorizing task".to_string(),
-        }))?;
+    let task = task_service.get_authorize_task().await.map_err(flash_err)?;
 
     auth_service
         .authorize_user(username, task.get_uuid(), task.get_description())
         .await
-        .map_err(|err| ApiError::BadRequest {
-            message: err.to_string(),
-        })?;
+        .map_err(flash_err)?;
 
     session_auth
         .authorize()
         .map_err(|err| {
-            info!("Error authorizing session for user: {err:?}");
-            ApiError::InternalServerError
+            {
+                info!("Error authorizing session for user: {err:?}");
+                ApiError::InternalServerError
+            }
+            .into_response()
         })?
         .update_session(&session)
         .await
         .map_err(|err| {
-            info!("Error updating session for user: {err:?}");
-            ApiError::InternalServerError
+            {
+                info!("Error updating session for user: {err:?}");
+                ApiError::InternalServerError
+            }
+            .into_response()
         })?;
 
     Ok(Redirect::to("/task"))

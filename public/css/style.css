@@ -269,6 +269,42 @@ main > article {
   color: var(--ctp-maroon);
 }
 
+/* Alerts / flash messages */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--pico-border-radius, 0.25rem);
+  border-left: 4px solid;
+  margin-bottom: 0.5rem;
+}
+
+.alert p {
+  margin: 0;
+}
+
+.alert-error {
+  background-color: color-mix(in srgb, var(--ctp-red) 15%, var(--ctp-surface0));
+  border-color: var(--ctp-red);
+  color: var(--ctp-red);
+}
+
+.alert-success {
+  background-color: color-mix(in srgb, var(--ctp-green) 15%, var(--ctp-surface0));
+  border-color: var(--ctp-green);
+  color: var(--ctp-green);
+}
+
+.alert-warning {
+  background-color: color-mix(in srgb, var(--ctp-yellow) 15%, var(--ctp-surface0));
+  border-color: var(--ctp-yellow);
+  color: var(--ctp-yellow);
+}
+
+.alert-info {
+  background-color: color-mix(in srgb, var(--ctp-blue) 15%, var(--ctp-surface0));
+  border-color: var(--ctp-blue);
+  color: var(--ctp-blue);
+}
+
 #authorize-user footer {
   display: flex;
   justify-content: space-between;

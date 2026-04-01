@@ -1,0 +1,10 @@
+{# vim: set ft=jinja: #}
+<div id="alert-container">
+  {% if let Some(flashes) = flashes %}
+  {% for (level, message) in flashes %}
+  <div class="alert alert-{{ level }}" role="alert">
+    <p>{{ message }}</p>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>

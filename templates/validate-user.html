@@ -29,7 +29,11 @@
       >
         Copy To Clipboard
       </button>
-      <button hx-post="/auth/authorize-user">Verify</button>
+      <button
+        hx-post="/auth/authorize-user"
+        hx-target="#alert-container"
+        hx-swap="innerHTML"
+      >Verify</button>
     </footer>
   </article>
 {% endblock %}

@@ -1,5 +1,9 @@
+use askama::Template;
+use axum::response::{IntoResponse, Response};
+use derive_more::Constructor;
 use serde::Serialize;
 use thiserror::Error;
+use tracing::info;
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -42,6 +46,29 @@ impl From<ApiError> for ErrorMessage {
     fn from(err: ApiError) -> ErrorMessage {
         ErrorMessage {
             message: err.to_string(),
+        }
+    }
+}
+
+pub type Flash = (String, String);
+
+pub type Flashes = Option<Vec<Flash>>;
+
+#[derive(Debug, Clone, Template, Constructor)]
+#[template(path = "partials/alert.html")]
+pub struct FlashTempl {
+    level: String,
+    message: String,
+}
+
+pub fn flash_err<E: std::fmt::Display>(err: E) -> Response {
+    let flash = FlashTempl::new("error".to_string(), err.to_string());
+
+    match flash.render() {
+        Ok(html) => html.into_response(),
+        Err(err) => {
+            info!("Error rendering flash: {err:?}");
+            ApiError::InternalServerError.into_response()
         }
     }
 }
