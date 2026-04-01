@@ -5,4 +5,8 @@ use taskchampion::Task;
 #[async_trait]
 pub trait TaskRepository: Send + Sync {
     async fn list(&self) -> Result<Vec<(usize, Task, Vec<usize>)>>;
+    async fn find(
+        &self,
+        filter: &(dyn for<'a> Fn(&'a Task) -> bool + Send + Sync),
+    ) -> Result<Option<Task>>;
 }

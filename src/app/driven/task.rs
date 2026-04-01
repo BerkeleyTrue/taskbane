@@ -33,6 +33,15 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
 
         Ok(tasks)
     }
+    async fn find(
+        &self,
+        filter: &(dyn for<'a> Fn(&'a Task) -> bool + Send + Sync),
+    ) -> Result<Option<Task>> {
+        let mut rep = self.replica.write().await;
+        let res = rep.pending_tasks().await?.into_iter().find(filter);
+
+        Ok(res)
+    }
 }
 
 pub fn create_task_repo<S: Storage + Sync>(replica: ArcRep<S>) -> Arc<TaskRepo<S>> {
