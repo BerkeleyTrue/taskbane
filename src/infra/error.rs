@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use askama::Template;
 use axum::response::{IntoResponse, Response};
 use derive_more::Constructor;
@@ -50,6 +52,25 @@ impl From<ApiError> for ErrorMessage {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum FlashLevel {
+    Error,
+    Success,
+    Warning,
+    Info,
+}
+
+impl Display for FlashLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FlashLevel::Error => write!(f, "error"),
+            FlashLevel::Success => write!(f, "success"),
+            FlashLevel::Warning => write!(f, "warning"),
+            FlashLevel::Info => write!(f, "info"),
+        }
+    }
+}
+
 pub type Flash = (String, String);
 
 pub type Flashes = Option<Vec<Flash>>;
@@ -57,12 +78,12 @@ pub type Flashes = Option<Vec<Flash>>;
 #[derive(Debug, Clone, Template, Constructor)]
 #[template(path = "partials/alert.html")]
 pub struct FlashTempl {
-    level: String,
+    level: FlashLevel,
     message: String,
 }
 
 pub fn flash_err<E: std::fmt::Display>(err: E) -> Response {
-    let flash = FlashTempl::new("error".to_string(), err.to_string());
+    let flash = FlashTempl::new(FlashLevel::Error, err.to_string());
 
     match flash.render() {
         Ok(html) => html.into_response(),
