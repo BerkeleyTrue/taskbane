@@ -214,6 +214,15 @@ main > article {
   border-color: var(--ctp-text);
 }
 
+#alert-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  width: 30rem;
+  pointer-events: none;
+}
+
 .alert {
   display: flex;
   justify-content: space-between;
@@ -222,6 +231,7 @@ main > article {
   border-radius: var(--pico-border-radius, 0.25rem);
   border-left: 4px solid;
   margin-bottom: 0.5rem;
+  pointer-events: auto;
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
