@@ -5,9 +5,16 @@ a mobile first taskwarrior ui
 
 - [ ] authorize use through task and key
   - [x] prevent unauthorised user from seeing tasks
-  - [ ] unauthorised users should be shown authorize page with task token
-    - [ ] show user authorize button, search for token
+  - [x] unauthorised users should be shown authorize page with task token
+    - [x] show user authorize button, search for token
+    - [x] copy to clipboard
+    - [x] find token in tasks
+    - [x] verify token
     - [ ] authorize user
+- [ ] add session flash
+  - [ ] create template
+  - [ ] send down for errors
+  - [ ] add to session storage
 - [ ] create sqlx task storage
 - [ ] add complete task action
 - [ ] add create task view
