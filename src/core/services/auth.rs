@@ -106,7 +106,7 @@ impl AuthService {
             .nth(1)
             .inspect(|str| info!("uuid: {str}"))
             .and_then(|str| Uuid::parse_str(str).ok())
-            .ok_or(anyhow!("No token found in task"))?;
+            .ok_or(anyhow!("No token found in authorizing task"))?;
 
         let user = self.user_service.get_user(username).await?;
 
@@ -114,10 +114,14 @@ impl AuthService {
             .repo
             .get_authorization_token(user.id())
             .await
-            .and_then(|maybe_token| maybe_token.ok_or(anyhow!("No token found for user")))?;
+            .and_then(|maybe_token| {
+                maybe_token.ok_or(anyhow!("User currently has no authorizing token."))
+            })?;
 
         if authorize_token != uploaded_token {
-            return Err(anyhow!("Authorize token did not match"));
+            return Err(anyhow!(
+                "User authorizing token did not match given task token"
+            ));
         }
 
         Ok(())
