@@ -1,4 +1,38 @@
 {# vim: set ft=jinja: #}
 <div class="alert alert-{{ level }}" role="alert">
-  <p>{{ message }}</p>
+  {{ message }}
+  <button 
+    class="secondary"
+    onclick="
+    const el = this.closest('.alert');
+    el.classList.add('dismissing');
+    el.addEventListener('transitionend', () => el.remove(), { once: true });
+  ">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="lucide lucide-x-icon lucide-x"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  </button>
+  <script>
+    (function () {
+      const el = document.currentScript.closest(".alert");
+      if (!el.classList.contains("alert-error")) {
+        setTimeout(() => {
+          el.classList.add("dismissing");
+          el.addEventListener("transitionend", () => el.remove(), { once: true });
+        }, 5000);
+      }
+    })();
+  </script>
 </div>

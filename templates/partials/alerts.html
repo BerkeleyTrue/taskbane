@@ -2,9 +2,7 @@
 <div id="alert-container">
   {% if let Some(flashes) = flashes %}
   {% for (level, message) in flashes %}
-  <div class="alert alert-{{ level }}" role="alert">
-    <p>{{ message }}</p>
-  </div>
+  {% include "partials/alert.html" %}
   {% endfor %}
   {% endif %}
 </div>
