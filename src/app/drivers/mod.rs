@@ -20,7 +20,11 @@ pub fn create_drivers(params: CreateDriverParams) -> axum::Router {
     let app = params.app;
     app.route("/ping", get(pong))
         .merge(home::home_routes())
-        .merge(auth::auth_routes(params.user_service, params.auth_service))
+        .merge(auth::auth_routes(
+            params.user_service,
+            params.auth_service,
+            params.task_service.clone(),
+        ))
         .merge(livereload::live_reload(params.rx, params.shutdown_token))
         .merge(task::task_routes(params.task_service))
 }

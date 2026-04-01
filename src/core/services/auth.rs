@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use derive_more::Constructor;
 use tracing::info;
 use uuid::Uuid;
@@ -88,5 +88,38 @@ impl AuthService {
         };
 
         Ok(authorize_token)
+    }
+
+    pub async fn authorize_user(
+        &self,
+        username: &str,
+        task_id: Uuid,
+        task_description: &str,
+    ) -> Result<()> {
+        info!("auth token: {task_id}, '{task_description}");
+        if !task_description.starts_with("taskbane:") {
+            return Err(anyhow!("Task is not an authorizing task"));
+        }
+
+        let uploaded_token = task_description
+            .split("taskbane:")
+            .nth(1)
+            .inspect(|str| info!("uuid: {str}"))
+            .and_then(|str| Uuid::parse_str(str).ok())
+            .ok_or(anyhow!("No token found in task"))?;
+
+        let user = self.user_service.get_user(username).await?;
+
+        let authorize_token = self
+            .repo
+            .get_authorization_token(user.id())
+            .await
+            .and_then(|maybe_token| maybe_token.ok_or(anyhow!("No token found for user")))?;
+
+        if authorize_token != uploaded_token {
+            return Err(anyhow!("Authorize token did not match"));
+        }
+
+        Ok(())
     }
 }

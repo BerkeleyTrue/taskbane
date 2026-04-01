@@ -1,11 +1,13 @@
 use askama::Template;
 use axum::extract::State;
+use axum::http::Response;
 use axum::response::{Html, IntoResponse, Redirect};
 use axum::{middleware, Form, Router};
 use axum::{
     routing::{get, post},
     Json,
 };
+use futures::TryFutureExt;
 use serde::Deserialize;
 use tower_sessions::Session;
 use tracing::info;
@@ -15,7 +17,7 @@ use webauthn_rs::prelude::{
     RequestChallengeResponse,
 };
 
-use crate::core::services::{AuthService, UserService};
+use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
 
@@ -23,9 +25,14 @@ use crate::infra::error::{ApiError, AppError};
 struct AuthServices {
     user_service: UserService,
     auth_service: AuthService,
+    task_service: TaskService,
 }
 
-pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> axum::Router<S> {
+pub fn auth_routes<S>(
+    user_service: UserService,
+    auth_service: AuthService,
+    task_service: TaskService,
+) -> axum::Router<S> {
     let unauthen_routes = Router::new()
         .route("/register", get(get_register))
         .route("/auth/register", post(post_start_registration))
@@ -44,12 +51,13 @@ pub fn auth_routes<S>(user_service: UserService, auth_service: AuthService) -> a
     Router::new()
         // unauthorized routes
         .route("/authorize-user", get(get_validate_user))
-        // .route("/auth/validate-user", post(post_validate_user))
+        .route("/auth/authorize-user", post(post_authorize_user))
         .layer(middleware::from_fn(authorized_middleware))
         .merge(unauthen_routes)
         .with_state(AuthServices {
             user_service,
             auth_service,
+            task_service,
         })
 }
 
@@ -106,6 +114,7 @@ async fn post_start_registration(
     State(AuthServices {
         user_service,
         auth_service,
+        ..
     }): State<AuthServices>,
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<CreationChallengeResponse>, ApiError> {
@@ -140,6 +149,7 @@ async fn post_validate_registration(
     State(AuthServices {
         user_service: _user_state,
         auth_service,
+        ..
     }): State<AuthServices>,
     Json(cred): Json<RegisterPublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
@@ -147,7 +157,7 @@ async fn post_validate_registration(
         .validate_registration(session_auth.user_id(), &cred)
         .await
         .or(Err(ApiError::BadRequest {
-            message: "Failed to validate credentioals".to_string(),
+            message: "Failed to validate credentials".to_string(),
         }))?;
 
     Ok(Redirect::to("/login"))
@@ -202,6 +212,7 @@ async fn post_authenticate(
     State(AuthServices {
         user_service,
         auth_service,
+        ..
     }): State<AuthServices>,
     Json(LoginParams { username }): Json<LoginParams>,
 ) -> Result<Json<RequestChallengeResponse>, ApiError> {
@@ -233,6 +244,7 @@ async fn post_validate_authen(
     State(AuthServices {
         user_service: _user_service,
         auth_service,
+        ..
     }): State<AuthServices>,
     Json(pkc): Json<PublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
@@ -343,7 +355,45 @@ async fn get_validate_user(
     Ok(Html(templ.render()?))
 }
 
-// async fn post_validate_user() -> Result<Json<>, ApiError> {
+async fn post_authorize_user(
+    session: Session,
+    session_auth: SessionAuthState,
+    State(AuthServices {
+        task_service,
+        auth_service,
+        ..
+    }): State<AuthServices>,
+) -> Result<impl IntoResponse, ApiError> {
+    let username = session_auth.username();
+    let task = task_service
+        .get_authorize_task()
+        .await
+        .or(Err(ApiError::BadRequest {
+            message: "Failed to find authorizing task".to_string(),
+        }))?;
+
+    auth_service
+        .authorize_user(username, task.get_uuid(), task.get_description())
+        .await
+        .map_err(|err| ApiError::BadRequest {
+            message: err.to_string(),
+        })?;
+
+    session_auth
+        .authorize()
+        .map_err(|err| {
+            info!("Error authorizing session for user: {err:?}");
+            ApiError::InternalServerError
+        })?
+        .update_session(&session)
+        .await
+        .map_err(|err| {
+            info!("Error updating session for user: {err:?}");
+            ApiError::InternalServerError
+        })?;
+
+    Ok(Redirect::to("/task"))
+}
 
 async fn get_logout(session: Session, session_auth: Option<SessionAuthState>) -> impl IntoResponse {
     if let Some(session_auth) = session_auth {
