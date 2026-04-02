@@ -123,6 +123,9 @@ impl AuthService {
                 "User authorizing token did not match given task token"
             ));
         }
+        self.repo
+            .update_authorization_token(user.id(), uploaded_token)
+            .await?;
 
         Ok(())
     }

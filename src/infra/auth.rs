@@ -102,7 +102,7 @@ impl SessionAuthState {
             return Ok(SessionAuthState {
                 user_id: self.user_id,
                 username: self.username.clone(),
-                auth_state: AuthState::Authenticated,
+                auth_state: AuthState::Authorized,
             });
         }
         Err(anyhow!("User not authenticated"))

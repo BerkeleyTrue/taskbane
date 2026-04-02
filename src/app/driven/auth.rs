@@ -8,7 +8,10 @@ use webauthn_rs::prelude::{
     AuthenticationResult, Passkey, PasskeyAuthentication, PasskeyRegistration,
 };
 
-use crate::core::{models::user_auth::UserAuth, ports::AuthRepository};
+use crate::core::{
+    models::user_auth::{UserAuth, UserAuthorizedState},
+    ports::AuthRepository,
+};
 
 pub struct AuthSqlRepo {
     pool: SqlitePool,
@@ -246,10 +249,11 @@ impl AuthRepository for AuthSqlRepo {
         sqlx::query!(
             r#"
                 UPDATE auth
-                SET authorize_token = ?
+                SET authorize_token = ?, auth_state = ?
                 WHERE user_id = ?
             "#,
             token,
+            UserAuthorizedState::Authorized,
             user_id,
         )
         .fetch_optional(&self.pool)

@@ -1,5 +1,6 @@
 use askama::Template;
 use axum::extract::State;
+use axum::http::HeaderValue;
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::{middleware, Form, Router};
 use axum::{
@@ -17,7 +18,7 @@ use webauthn_rs::prelude::{
 
 use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
-use crate::infra::error::{flash_err, ApiError, AppError, FlashTempl, Flashes};
+use crate::infra::error::{flash_err, ApiError, AppError, Flashes};
 
 #[derive(Clone)]
 struct AuthServices {
@@ -399,7 +400,14 @@ async fn post_authorize_user(
             .into_response()
         })?;
 
-    Ok(Redirect::to("/task"))
+    Ok((
+        [(
+            axum::http::header::HeaderName::from_static("hx-redirect"),
+            HeaderValue::from_static("/task"),
+        )],
+        "",
+    )
+        .into_response())
 }
 
 async fn get_logout(session: Session, session_auth: Option<SessionAuthState>) -> impl IntoResponse {
