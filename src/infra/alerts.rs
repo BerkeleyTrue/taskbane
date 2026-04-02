@@ -79,18 +79,18 @@ pub async fn flush_alert(session: &Session) -> Alerts {
         .unwrap_or(Alerts::new())
 }
 
-pub async fn alert_err(message: String, session: &Session) -> Result<()> {
-    alert(AlertLevel::Error, message, session).await
+pub async fn alert_err(message: &str, session: &Session) -> Result<()> {
+    alert(AlertLevel::Error, message.to_owned(), session).await
 }
 
-pub async fn alert_success(message: String, session: &Session) -> Result<()> {
-    alert(AlertLevel::Success, message, session).await
+pub async fn alert_success(message: &str, session: &Session) -> Result<()> {
+    alert(AlertLevel::Success, message.to_owned(), session).await
 }
 
-pub async fn alert_warning(message: String, session: &Session) -> Result<()> {
-    alert(AlertLevel::Warning, message, session).await
+pub async fn alert_warning(message: &str, session: &Session) -> Result<()> {
+    alert(AlertLevel::Warning, message.to_owned(), session).await
 }
 
-pub async fn alert_info(message: String, session: &Session) -> Result<()> {
-    alert(AlertLevel::Info, message, session).await
+pub async fn alert_info(message: &str, session: &Session) -> Result<()> {
+    alert(AlertLevel::Info, message.to_owned(), session).await
 }

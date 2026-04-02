@@ -17,8 +17,8 @@ use webauthn_rs::prelude::{
 };
 
 use crate::core::services::{AuthService, TaskService, UserService};
-use crate::infra::alerts::map_err_to_alert;
-use crate::infra::askama::Globals;
+use crate::infra::alerts::{alert_success, map_err_to_alert};
+use crate::infra::askama::{Globals, HtmlTemplate};
 use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
 
@@ -68,12 +68,12 @@ struct RegisterTemplate {
     is_authed: bool,
     globals: Globals,
 }
-async fn get_register() -> Result<impl IntoResponse, AppError> {
+async fn get_register() -> impl IntoResponse {
     let template = RegisterTemplate {
         is_authed: false,
         globals: Globals::default(),
     };
-    Ok(Html(template.render()?))
+    HtmlTemplate(template)
 }
 
 // 1. The first step a client (user) will carry out is requesting a credential to be
@@ -174,12 +174,12 @@ struct LoginTemplate {
     is_authed: bool,
     globals: Globals,
 }
-async fn get_login() -> Result<impl IntoResponse, AppError> {
+async fn get_login() -> impl IntoResponse {
     let template = LoginTemplate {
         is_authed: false,
         globals: Globals::default(),
     };
-    Ok(Html(template.render()?))
+    HtmlTemplate(template)
 }
 
 // 2. Now that our public key has been registered, we can authenticate a user and verify
@@ -270,6 +270,10 @@ async fn post_validate_authen(
     session_auth
         .authenticate()
         .update_session(&session)
+        .await
+        .or(Err(ApiError::InternalServerError))?;
+
+    alert_success("Welcome Back!", &session)
         .await
         .or(Err(ApiError::InternalServerError))?;
 
@@ -364,7 +368,7 @@ async fn get_validate_user(
         globals: Globals::fetch(&session).await,
     };
 
-    Ok(Html(templ.render()?))
+    Ok(HtmlTemplate(templ))
 }
 
 async fn post_authorize_user(

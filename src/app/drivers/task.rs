@@ -11,7 +11,7 @@ use tracing::info;
 use crate::{
     core::{models::task::TaskDto, services::TaskService},
     infra::{
-        askama::Globals,
+        askama::{Globals, HtmlTemplate},
         auth::{unauth_middleware, SessionAuthState},
         error::AppError,
     },
@@ -51,5 +51,5 @@ pub async fn get_task(
         tasks,
         globals: Globals::fetch(&session).await,
     };
-    Ok(axum::response::Html(templ.render()?))
+    Ok(HtmlTemplate(templ))
 }
