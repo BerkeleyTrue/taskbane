@@ -17,8 +17,10 @@ use webauthn_rs::prelude::{
 };
 
 use crate::core::services::{AuthService, TaskService, UserService};
+use crate::infra::alerts::flash_err;
+use crate::infra::askama::Globals;
 use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
-use crate::infra::error::{flash_err, ApiError, AppError, Flashes};
+use crate::infra::error::{ApiError, AppError};
 
 #[derive(Clone)]
 struct AuthServices {
@@ -64,12 +66,12 @@ pub fn auth_routes<S>(
 #[template(path = "register.html")]
 struct RegisterTemplate {
     is_authed: bool,
-    flashes: Flashes,
+    globals: Globals,
 }
 async fn get_register() -> Result<impl IntoResponse, AppError> {
     let template = RegisterTemplate {
         is_authed: false,
-        flashes: None,
+        globals: Globals::default(),
     };
     Ok(Html(template.render()?))
 }
@@ -170,12 +172,12 @@ async fn post_validate_registration(
 #[template(path = "login.html")]
 struct LoginTemplate {
     is_authed: bool,
-    flashes: Flashes,
+    globals: Globals,
 }
 async fn get_login() -> Result<impl IntoResponse, AppError> {
     let template = LoginTemplate {
         is_authed: false,
-        flashes: None,
+        globals: Globals::default(),
     };
     Ok(Html(template.render()?))
 }
@@ -339,9 +341,10 @@ async fn username_validation(
 struct ValidateUser {
     token: Uuid,
     is_authed: bool,
-    flashes: Flashes,
+    globals: Globals,
 }
 async fn get_validate_user(
+    session: Session,
     session_auth: SessionAuthState,
     State(AuthServices { auth_service, .. }): State<AuthServices>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -358,7 +361,7 @@ async fn get_validate_user(
     let templ = ValidateUser {
         token,
         is_authed: true,
-        flashes: None,
+        globals: Globals::fetch(&session).await,
     };
 
     Ok(Html(templ.render()?))

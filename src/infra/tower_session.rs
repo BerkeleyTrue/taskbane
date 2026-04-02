@@ -1,15 +1,17 @@
+use anyhow::Result;
 use sqlx::SqlitePool;
 use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::SqliteStore;
 
 pub trait MySession {
-    async fn run_migration(&self) -> Result<(), String>;
+    async fn run_migration(&self) -> Result<()>;
     fn create_layer(self) -> SessionManagerLayer<SqliteStore>;
 }
 
 impl MySession for SqliteStore {
-    async fn run_migration(&self) -> Result<(), String> {
-        self.migrate().await.map_err(|err| err.to_string())
+    async fn run_migration(&self) -> Result<()> {
+        self.migrate().await?;
+        Ok(())
     }
 
     fn create_layer(self) -> SessionManagerLayer<SqliteStore> {

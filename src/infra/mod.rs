@@ -1,3 +1,5 @@
+pub mod alerts;
+pub mod askama;
 pub mod auth;
 pub mod axum;
 pub mod error;

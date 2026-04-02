@@ -1,8 +1,6 @@
 {# vim: set ft=jinja: #}
 <div id="alert-container">
-  {% if let Some(flashes) = flashes %}
-  {% for (level, message) in flashes %}
-  {% include "partials/alert.html" %}
+  {% for crate::infra::alerts::Flash { level, message } in globals.alerts %}
+    {% include "partials/alert.html" %}
   {% endfor %}
-  {% endif %}
 </div>

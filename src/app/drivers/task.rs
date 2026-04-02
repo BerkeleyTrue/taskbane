@@ -5,13 +5,15 @@ use axum::{
     response::{IntoResponse, Redirect},
     routing, Router,
 };
+use tower_sessions::Session;
 use tracing::info;
 
 use crate::{
     core::{models::task::TaskDto, services::TaskService},
     infra::{
+        askama::Globals,
         auth::{unauth_middleware, SessionAuthState},
-        error::{AppError, Flashes},
+        error::AppError,
     },
 };
 
@@ -31,12 +33,13 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
 struct TaskPage {
     is_authed: bool,
     tasks: Vec<TaskDto>,
-    flashes: Flashes,
+    globals: Globals,
 }
 
 pub async fn get_task(
-    task_service: State<TaskService>,
+    session: Session,
     auth_state: SessionAuthState,
+    task_service: State<TaskService>,
 ) -> Result<impl IntoResponse, AppError> {
     let tasks = task_service.list().await.map_err(|err| {
         info!("Error getting tasks: {:?}", err);
@@ -46,7 +49,7 @@ pub async fn get_task(
     let templ = TaskPage {
         is_authed: auth_state.is_authed(),
         tasks,
-        flashes: None,
+        globals: Globals::fetch(&session).await,
     };
     Ok(axum::response::Html(templ.render()?))
 }
