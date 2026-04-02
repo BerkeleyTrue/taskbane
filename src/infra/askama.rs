@@ -5,7 +5,7 @@ use axum::{
 };
 use tower_sessions::Session;
 
-use crate::infra::alerts::{flush, Flashes};
+use crate::infra::alerts::{flush_alert, Alerts};
 
 pub struct HtmlTemplate<T>(pub T);
 
@@ -27,13 +27,13 @@ where
 
 #[derive(Debug, Clone, Default)]
 pub struct Globals {
-    pub alerts: Flashes,
+    pub alerts: Alerts,
 }
 
 impl Globals {
     pub async fn fetch(session: &Session) -> Self {
         Self {
-            alerts: flush(session).await,
+            alerts: flush_alert(session).await,
         }
     }
 }

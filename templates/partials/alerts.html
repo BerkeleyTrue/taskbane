@@ -1,6 +1,6 @@
 {# vim: set ft=jinja: #}
 <div id="alert-container">
-  {% for crate::infra::alerts::Flash { level, message } in globals.alerts %}
+  {% for crate::infra::alerts::Alert { level, message } in globals.alerts %}
     {% include "partials/alert.html" %}
   {% endfor %}
 </div>

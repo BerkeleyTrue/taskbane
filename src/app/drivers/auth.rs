@@ -17,7 +17,7 @@ use webauthn_rs::prelude::{
 };
 
 use crate::core::services::{AuthService, TaskService, UserService};
-use crate::infra::alerts::map_err_to_flash;
+use crate::infra::alerts::map_err_to_alert;
 use crate::infra::askama::Globals;
 use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
 use crate::infra::error::{ApiError, AppError};
@@ -380,12 +380,12 @@ async fn post_authorize_user(
     let task = task_service
         .get_authorize_task()
         .await
-        .map_err(map_err_to_flash)?;
+        .map_err(map_err_to_alert)?;
 
     auth_service
         .authorize_user(username, task.get_uuid(), task.get_description())
         .await
-        .map_err(map_err_to_flash)?;
+        .map_err(map_err_to_alert)?;
 
     session_auth
         .authorize()
