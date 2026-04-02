@@ -20,21 +20,23 @@ async function login(e) {
     .then((res) => {
       if (!res.ok) {
         return res.json().then((err) => {
-          throw new Error(err.message || 'Failed to fetch registration options');
+          throw new Error(
+            err.message || 'Failed to fetch registration options'
+          );
         });
       }
       return res;
     })
     .then((res) => res.json())
     .then((credOptions) => credOptions.publicKey)
-    .then(x => (console.log('credOptions: ', x), x))
+    .then((x) => (console.log('credOptions: ', x), x))
     .then((publicKey) => ({
       ...publicKey,
       challenge: toUint(publicKey.challenge),
       allowCredentials: publicKey.allowCredentials?.map((listItem) => ({
         ...listItem,
         id: toUint(listItem.id),
-      }))
+      })),
     }))
     .then((publicKey) => {
       return navigator.credentials.get({
@@ -42,10 +44,10 @@ async function login(e) {
       });
     })
     .then((assertion) => {
-      return fetch("/auth/validate-login", {
-        method: "POST",
+      return fetch('/auth/validate-login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           id: assertion.id,
@@ -58,10 +60,14 @@ async function login(e) {
             userHandle: fromUint(assertion.response.userHandle),
           },
         }),
-        redirect: 'follow', // doesn't seem to work
-      })
+      });
     })
     .then((res) => {
+      const hxRedirect = res.headers.get('hx-redirect');
+      if (hxRedirect) {
+        htmx.ajax('GET', hxRedirect, { target: 'body', swap: 'outerHTML' });
+        return;
+      }
       if (!res.ok) {
         return res.json().then((err) => {
           throw new Error(err.message || 'Failed to validate registration');
@@ -69,13 +75,7 @@ async function login(e) {
       }
       return res;
     })
-    .then((res) => {
-      if (res.redirected) {
-        window.location.href = res.url;
-      }
-      return res;
-    })
-    .catch(err => {
+    .catch((err) => {
       console.error('Error during registration:', err);
     });
 

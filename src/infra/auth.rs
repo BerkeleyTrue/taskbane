@@ -97,13 +97,13 @@ impl SessionAuthState {
             SessionAuthState {
                 user_id: self.user_id,
                 username: self.username.clone(),
-                auth_state: AuthState::Authenticated,
+                auth_state: AuthState::Authorized,
             }
         } else {
             SessionAuthState {
                 user_id: self.user_id,
                 username: self.username.clone(),
-                auth_state: AuthState::Authorized,
+                auth_state: AuthState::Authenticated,
             }
         }
     }

@@ -16,6 +16,7 @@ use webauthn_rs::prelude::{
     RequestChallengeResponse,
 };
 
+use crate::core::models::user_auth::UserAuthorizedState;
 use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::alerts::{alert_success, map_err_to_alert};
 use crate::infra::askama::{Globals, HtmlTemplate};
@@ -256,7 +257,7 @@ async fn post_validate_authen(
         ..
     }): State<AuthServices>,
     Json(pkc): Json<PublicKeyCredential>,
-) -> Result<Redirect, ApiError> {
+) -> Result<impl IntoResponse, ApiError> {
     auth_service
         .validate_login(session_auth.user_id(), &pkc)
         .await
@@ -276,7 +277,7 @@ async fn post_validate_authen(
         })?;
 
     session_auth
-        .login(auth_state)
+        .login(auth_state.clone())
         .update_session(&session)
         .await
         .or(Err(ApiError::InternalServerError))?;
@@ -285,7 +286,18 @@ async fn post_validate_authen(
         .await
         .or(Err(ApiError::InternalServerError))?;
 
-    Ok(Redirect::to("/authorize-user"))
+    let redirect_path = match auth_state {
+        UserAuthorizedState::Authorized => HeaderValue::from_static("/task"),
+        UserAuthorizedState::Not => HeaderValue::from_static("/authorize-user"),
+    };
+
+    Ok((
+        [(
+            axum::http::header::HeaderName::from_static("hx-redirect"),
+            redirect_path,
+        )],
+        "",
+    ))
 }
 
 #[derive(Deserialize, Debug)]
