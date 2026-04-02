@@ -10,11 +10,11 @@ a mobile first taskwarrior ui
     - [x] copy to clipboard
     - [x] find token in tasks
     - [x] verify token
-    - [ ] authorize user
-- [ ] add session flash
-  - [ ] create template
-  - [ ] send down for errors
-  - [ ] add to session storage
+    - [x] authorize user
+- [x] add session flash
+  - [x] create template
+  - [x] send down for errors
+  - [x] add to session storage
 - [ ] create sqlx task storage
 - [ ] add complete task action
 - [ ] add create task view
