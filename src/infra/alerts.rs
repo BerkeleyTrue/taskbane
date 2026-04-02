@@ -46,7 +46,7 @@ pub struct FlashTempl {
     message: String,
 }
 
-pub fn flash_err<E: std::fmt::Display>(err: E) -> Response {
+pub fn map_err_to_flash<E: std::fmt::Display>(err: E) -> Response {
     let flash = FlashTempl::new(FlashLevel::Error, err.to_string());
 
     match flash.render() {
@@ -79,4 +79,18 @@ pub async fn flush(session: &Session) -> Flashes {
         .unwrap_or(Flashes::new())
 }
 
-// pub async fn flash_err
+pub async fn flash_err(message: String, session: &Session) -> Result<()> {
+    flash(FlashLevel::Error, message, session).await
+}
+
+pub async fn flash_success(message: String, session: &Session) -> Result<()> {
+    flash(FlashLevel::Success, message, session).await
+}
+
+pub async fn flash_warning(message: String, session: &Session) -> Result<()> {
+    flash(FlashLevel::Warning, message, session).await
+}
+
+pub async fn flash_info(message: String, session: &Session) -> Result<()> {
+    flash(FlashLevel::Info, message, session).await
+}
