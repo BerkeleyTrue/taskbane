@@ -13,7 +13,10 @@ use webauthn_rs::{
 };
 
 use crate::core::{
-    models::{user::User, user_auth::UserAuth},
+    models::{
+        user::User,
+        user_auth::{UserAuth, UserAuthorizedState},
+    },
     ports::AuthRepository,
     services::UserService,
 };
@@ -74,7 +77,7 @@ impl AuthService {
         Ok(())
     }
 
-    pub async fn get_authorization(&self, username: &str) -> Result<Uuid> {
+    pub async fn get_authorization_token(&self, username: &str) -> Result<Uuid> {
         let user = self.user_service.get_user(username).await?;
         let authorize_token = match self.repo.get_authorization_token(user.id()).await? {
             Some(uuid) => uuid,
@@ -128,5 +131,10 @@ impl AuthService {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_authorization(&self, username: &str) -> Result<UserAuthorizedState> {
+        let user = self.user_service.get_user(username).await?;
+        self.repo.get_authorization(user.id()).await
     }
 }

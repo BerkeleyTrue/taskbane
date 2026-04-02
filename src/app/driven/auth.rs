@@ -237,14 +237,14 @@ impl AuthRepository for AuthSqlRepo {
         // make sure user has existing auth
         sqlx::query!(
             r#"
-                SELECT auth_state FROM auth
+                SELECT authorize_token FROM auth
                 WHERE user_id = ?
             "#,
             user_id,
         )
         .fetch_optional(&self.pool)
         .await?
-        .ok_or(anyhow!("No auth found for user"))?;
+        .ok_or(anyhow!("No authorization token found for user"))?;
 
         sqlx::query!(
             r#"
@@ -260,6 +260,19 @@ impl AuthRepository for AuthSqlRepo {
         .await?;
 
         Ok(())
+    }
+    async fn get_authorization(&self, user_id: Uuid) -> Result<UserAuthorizedState> {
+        sqlx::query!(
+            r#"
+                SELECT auth_state as "auth_state:crate::core::models::user_auth::UserAuthorizedState" FROM auth
+                WHERE user_id = ?
+            "#,
+            user_id,
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(anyhow!("No auth state found for user"))
+        .map(|r| r.auth_state)
     }
 }
 

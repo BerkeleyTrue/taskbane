@@ -25,4 +25,5 @@ pub trait AuthRepository: Send + Sync {
 
     async fn get_authorization_token(&self, user_id: Uuid) -> Result<Option<Uuid>>;
     async fn update_authorization_token(&self, user_id: Uuid, token: Uuid) -> Result<()>;
+    async fn get_authorization(&self, user_id: Uuid) -> Result<UserAuthorizedState>;
 }

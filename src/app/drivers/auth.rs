@@ -267,8 +267,16 @@ async fn post_validate_authen(
             }
         })?;
 
+    let auth_state = auth_service
+        .get_authorization(session_auth.username())
+        .await
+        .map_err(|err| {
+            info!("Error validating authorization: {:?}", err);
+            ApiError::InternalServerError
+        })?;
+
     session_auth
-        .authenticate()
+        .login(auth_state)
         .update_session(&session)
         .await
         .or(Err(ApiError::InternalServerError))?;
@@ -355,7 +363,7 @@ async fn get_validate_user(
     let username = session_auth.username();
 
     let token = auth_service
-        .get_authorization(username)
+        .get_authorization_token(username)
         .await
         .map_err(|err| {
             info!("auth err: {err:?}");

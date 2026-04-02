@@ -15,7 +15,7 @@ use tower_sessions::Session;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::infra::error::ErrorMessage;
+use crate::{core::models::user_auth::UserAuthorizedState, infra::error::ErrorMessage};
 
 pub const SESSION_KEY: &str = "auth_state";
 const ACCEPT_JSON: MediaType = MediaType::new(names::APPLICATION, names::JSON);
@@ -23,7 +23,7 @@ const ACCEPT_HTML: MediaType = MediaType::new(names::TEXT, names::HTML);
 const ACCEPT_LIST: &[MediaType; 2] = &[ACCEPT_JSON, ACCEPT_HTML];
 
 #[derive(Debug, Clone, Display, Deserialize, Serialize)]
-pub enum AuthState {
+enum AuthState {
     Authorized,
     Authenticated,
     Not,
@@ -70,10 +70,6 @@ impl SessionAuthState {
         &self.username
     }
 
-    pub fn auth_state(&self) -> AuthState {
-        self.auth_state.clone()
-    }
-
     pub fn is_authed(&self) -> bool {
         matches!(
             self.auth_state,
@@ -85,18 +81,6 @@ impl SessionAuthState {
         matches!(self.auth_state, AuthState::Authorized)
     }
 
-    pub fn authenticate(self) -> Self {
-        if matches!(self.auth_state, AuthState::Not) {
-            SessionAuthState {
-                user_id: self.user_id,
-                username: self.username.clone(),
-                auth_state: AuthState::Authenticated,
-            }
-        } else {
-            self
-        }
-    }
-
     pub fn authorize(self) -> Result<Self> {
         if matches!(self.auth_state, AuthState::Authenticated) {
             return Ok(SessionAuthState {
@@ -106,6 +90,22 @@ impl SessionAuthState {
             });
         }
         Err(anyhow!("User not authenticated"))
+    }
+
+    pub fn login(self, auth_state: UserAuthorizedState) -> Self {
+        if matches!(auth_state, UserAuthorizedState::Authorized) {
+            SessionAuthState {
+                user_id: self.user_id,
+                username: self.username.clone(),
+                auth_state: AuthState::Authenticated,
+            }
+        } else {
+            SessionAuthState {
+                user_id: self.user_id,
+                username: self.username.clone(),
+                auth_state: AuthState::Authorized,
+            }
+        }
     }
 
     pub async fn update_session(&self, session: &Session) -> Result<Self> {
