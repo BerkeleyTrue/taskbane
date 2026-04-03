@@ -4,6 +4,7 @@ use anyhow::Result;
 use derive_more::Constructor;
 use itertools::Itertools;
 use taskchampion::Task;
+use uuid::Uuid;
 
 use crate::core::{models::task::TaskDto, ports::TaskRepository};
 
@@ -29,5 +30,9 @@ impl TaskService {
             .find(&|task| task.get_description().starts_with("taskbane:"))
             .await
             .and_then(|maybe_task| maybe_task.ok_or(anyhow::anyhow!("No authorizing task found")))
+    }
+
+    pub async fn mark_task_done(&self, uuid: Uuid) -> Result<()> {
+        self.repo.mark_task_done(uuid).await
     }
 }

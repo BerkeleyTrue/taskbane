@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use taskchampion::Task;
+use uuid::Uuid;
 
 #[async_trait]
 pub trait TaskRepository: Send + Sync {
@@ -9,4 +10,5 @@ pub trait TaskRepository: Send + Sync {
         &self,
         filter: &(dyn for<'a> Fn(&'a Task) -> bool + Send + Sync),
     ) -> Result<Option<Task>>;
+    async fn mark_task_done(&self, uuid: Uuid) -> Result<()>;
 }

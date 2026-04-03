@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use derive_more::Constructor;
-use taskchampion::{storage::Storage, Status, Task};
+use taskchampion::{storage::Storage, Operations, Status, Task};
+use uuid::Uuid;
 
 use crate::{core::ports::TaskRepository, infra::task::ArcRep};
 
@@ -41,6 +42,18 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
         let res = rep.pending_tasks().await?.into_iter().find(filter);
 
         Ok(res)
+    }
+
+    async fn mark_task_done(&self, uuid: Uuid) -> Result<()> {
+        let mut rep = self.replica.write().await;
+        let mut ops = Operations::new();
+        let mut task = rep.get_task(uuid).await?.ok_or(anyhow!("No task found"))?;
+
+        task.done(&mut ops)?;
+
+        rep.commit_operations(ops).await?;
+
+        Ok(())
     }
 }
 
