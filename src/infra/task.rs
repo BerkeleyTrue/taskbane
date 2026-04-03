@@ -6,7 +6,7 @@ use derive_more::Constructor;
 use sqlx::{query, Sqlite, SqlitePool, Transaction};
 use taskchampion::{
     server::VersionId,
-    storage::{inmemory::InMemoryStorage, Storage, StorageTxn, TaskMap},
+    storage::{Storage, StorageTxn, TaskMap},
     Error as TcError, Operation, Replica, ServerConfig,
 };
 use tokio::sync::RwLock;
@@ -17,8 +17,8 @@ use crate::types::ArcRw;
 
 pub type ArcRep<S> = ArcRw<Replica<S>>;
 
-pub async fn create_task_storage() -> Result<(ArcRep<InMemoryStorage>, ServerConfig)> {
-    let storage = InMemoryStorage::new();
+pub async fn create_task_storage(conn: &SqlitePool) -> Result<(ArcRep<SqlxStorage>, ServerConfig)> {
+    let storage = SqlxStorage::new(conn.clone());
     let url = env::var("TASK_URL").expect("No taskserver url provided");
 
     let client_id = env::var("TASK_CLIENT_ID")
@@ -76,7 +76,7 @@ pub fn start_sync_loop<S: Storage + Sync + 'static>(replica: ArcRep<S>, config: 
 type TcResult<T> = std::result::Result<T, taskchampion::Error>;
 
 #[derive(Constructor)]
-struct SqlxStorage {
+pub struct SqlxStorage {
     conn: SqlitePool,
 }
 
