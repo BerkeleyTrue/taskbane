@@ -41,3 +41,16 @@ migrate-status:
 [group('db')]
 prepare:
   DATABASE_URL="$DB_URL" cargo sqlx prepare --database-url "$DB_URL"
+
+# copy local taskwarrior db into project data dir for testing
+[group('task-sync-server')]
+task-db-copy:
+  mkdir -p "$(dirname "$TASK_DB_PATH")"
+  cp ~/.config/task/taskchampion.sqlite3 "$TASK_DB_PATH"
+  echo "Copied taskchampion db to $TASK_DB_PATH"
+
+# launch local taskchampion sync server
+[group('task-sync-server')]
+task-sync-server:
+  mkdir -p "$TASK_SYNC_DIR"
+  taskchampion-sync-server --data-dir "$TASK_SYNC_DIR" --listen "0.0.0.0:$TASK_SYNC_PORT"

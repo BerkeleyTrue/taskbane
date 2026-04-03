@@ -58,6 +58,8 @@
             tailwindcss_4
             openssl
             pkg-config
+            sqlite
+            taskchampion-sync-server
           ];
 
           shellHook = ''
