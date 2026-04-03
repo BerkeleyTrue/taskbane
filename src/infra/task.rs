@@ -136,8 +136,8 @@ impl StorageTxn for Txn<'_> {
         let tx = self.get_txn()?;
         let res = query!(
             r#"
-            SELECT taskdb_tasks.* 
-            FROM taskdb_tasks 
+            SELECT taskdb_tasks.uuid as "uuid:uuid::Uuid", taskdb_tasks.data
+            FROM taskdb_tasks
             JOIN taskdb_working_set ON taskdb_tasks.uuid = taskdb_working_set.uuid
             "#
         )
@@ -146,11 +146,7 @@ impl StorageTxn for Txn<'_> {
         .map_err(to_tc_err)?
         .into_iter()
         .map(|r| -> TcResult<_> {
-            let uuid = r
-                .uuid
-                .map(|s| Uuid::parse_str(&s))
-                .expect("pk is never null??")
-                .map_err(to_tc_err)?;
+            let uuid = r.uuid.expect("pk is never null?");
             let taskmap = serde_json::from_str::<TaskMap>(&r.data).map_err(to_tc_err)?;
             Ok((uuid, taskmap))
         })
@@ -205,17 +201,13 @@ impl StorageTxn for Txn<'_> {
     /// Get the uuids and bodies of all tasks in the storage, in undefined order.
     async fn all_tasks(&mut self) -> TcResult<Vec<(Uuid, TaskMap)>> {
         let tx = self.get_txn()?;
-        let res = query!("SELECT uuid, data FROM taskdb_tasks")
+        let res = query!(r#"SELECT uuid as "uuid:uuid::Uuid", data FROM taskdb_tasks"#)
             .fetch_all(&mut **tx)
             .await
             .map_err(to_tc_err)?
             .into_iter()
             .map(|r| -> TcResult<_> {
-                let uuid = r
-                    .uuid
-                    .map(|s| Uuid::parse_str(&s))
-                    .expect("pk should never be null?")
-                    .map_err(to_tc_err)?;
+                let uuid = r.uuid.expect("pk is never null");
                 let taskmap = serde_json::from_str::<TaskMap>(&r.data).map_err(to_tc_err)?;
                 Ok((uuid, taskmap))
             })
@@ -226,18 +218,13 @@ impl StorageTxn for Txn<'_> {
     /// Get the uuids of all tasks in the storage, in undefined order.
     async fn all_task_uuids(&mut self) -> TcResult<Vec<Uuid>> {
         let tx = self.get_txn()?;
-        let res = query!("SELECT uuid FROM taskdb_tasks")
+        let res = query!(r#"SELECT uuid as "uuid:uuid::Uuid" FROM taskdb_tasks"#)
             .fetch_all(&mut **tx)
             .await
             .map_err(to_tc_err)?
             .into_iter()
-            .map(|r| {
-                r.uuid
-                    .map(|s| Uuid::parse_str(&s))
-                    .expect("pk should never be null")
-                    .map_err(to_tc_err)
-            })
-            .collect::<TcResult<Vec<_>>>()?;
+            .map(|r| r.uuid.expect("pk is never null"))
+            .collect::<Vec<_>>();
         Ok(res)
     }
 
@@ -377,16 +364,17 @@ impl StorageTxn for Txn<'_> {
     /// Element 0 is always None.
     async fn get_working_set(&mut self) -> TcResult<Vec<Option<Uuid>>> {
         let tx = self.get_txn()?;
-        let rows = query!("SELECT id, uuid FROM taskdb_working_set ORDER BY id ASC")
-            .fetch_all(&mut **tx)
-            .await
-            .map_err(to_tc_err)?;
+        let rows = query!(
+            r#"SELECT id, uuid as "uuid:uuid::Uuid" FROM taskdb_working_set ORDER BY id ASC"#
+        )
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
 
         let next_id = self.get_next_working_set_number().await?;
         let mut result = vec![None; next_id];
         for row in rows {
-            let uuid = Uuid::parse_str(&row.uuid).map_err(to_tc_err)?;
-            result[row.id as usize] = Some(uuid);
+            result[row.id as usize] = Some(row.uuid);
         }
         Ok(result)
     }
