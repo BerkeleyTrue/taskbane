@@ -4,8 +4,8 @@ a mobile first taskwarrior ui
 ## TODO:
 
 - [x] create sqlx task storage
-  - [ ] fix: utf decoding issue
-  - [ ] add tests suite
+  - [x] fix: utf decoding issue
+  - [x] add tests suite
 - [ ] add complete task action
 - [ ] add create task view
 - [ ] add single task view with annotations

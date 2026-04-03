@@ -303,10 +303,15 @@ impl StorageTxn for Txn<'_> {
     async fn add_operation(&mut self, op: Operation) -> TcResult<()> {
         let tx = self.get_txn()?;
         let data = serde_json::to_string(&op).map_err(to_tc_err)?;
-        query!("INSERT INTO taskdb_operations (data) VALUES (?)", data)
-            .execute(&mut **tx)
-            .await
-            .map_err(to_tc_err)?;
+        let uuid = op.get_uuid();
+        query!(
+            "INSERT INTO taskdb_operations (data, uuid) VALUES (?, ?)",
+            data,
+            uuid
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
         Ok(())
     }
 
@@ -452,4 +457,675 @@ impl StorageTxn for Txn<'_> {
 
 fn to_tc_err<E: Display>(err: E) -> TcError {
     TcError::Database(err.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use taskchampion::chrono::Utc;
+    use taskchampion::storage::{Storage, TaskMap};
+
+    async fn setup_storage() -> SqlxStorage {
+        let pool = SqlitePool::connect(":memory:").await.unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+        SqlxStorage::new(pool)
+    }
+
+    fn taskmap_with(properties: Vec<(String, String)>) -> TaskMap {
+        properties.into_iter().collect()
+    }
+
+    #[tokio::test]
+    async fn get_working_set_empty() {
+        let mut storage = setup_storage().await;
+        let mut txn = storage.txn().await.unwrap();
+        let ws = txn.get_working_set().await.unwrap();
+        assert_eq!(ws, vec![None]);
+    }
+
+    #[tokio::test]
+    async fn add_to_working_set() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.add_to_working_set(uuid1).await.unwrap();
+            txn.add_to_working_set(uuid2).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        let ws = txn.get_working_set().await.unwrap();
+        assert_eq!(ws, vec![None, Some(uuid1), Some(uuid2)]);
+    }
+
+    #[tokio::test]
+    async fn clear_working_set() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.add_to_working_set(uuid1).await.unwrap();
+            txn.add_to_working_set(uuid2).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.clear_working_set().await.unwrap();
+            txn.add_to_working_set(uuid2).await.unwrap();
+            txn.add_to_working_set(uuid1).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        let ws = txn.get_working_set().await.unwrap();
+        assert_eq!(ws, vec![None, Some(uuid2), Some(uuid1)]);
+    }
+
+    #[tokio::test]
+    async fn set_working_set_item() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.add_to_working_set(uuid1).await.unwrap();
+            txn.add_to_working_set(uuid2).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ws = txn.get_working_set().await.unwrap();
+            assert_eq!(ws, vec![None, Some(uuid1), Some(uuid2)]);
+        }
+
+        // Clear slot 1
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.set_working_set_item(1, None).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ws = txn.get_working_set().await.unwrap();
+            assert_eq!(ws, vec![None, None, Some(uuid2)]);
+        }
+
+        // Override slot 2
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.set_working_set_item(2, Some(uuid1)).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ws = txn.get_working_set().await.unwrap();
+            assert_eq!(ws, vec![None, None, Some(uuid1)]);
+        }
+
+        // Clearing the last slot trims trailing None
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.set_working_set_item(1, Some(uuid1)).await.unwrap();
+            txn.set_working_set_item(2, None).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ws = txn.get_working_set().await.unwrap();
+            assert_eq!(ws, vec![None, Some(uuid1)]);
+        }
+    }
+
+    #[tokio::test]
+    async fn drop_transaction() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn.create_task(uuid1).await.unwrap());
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn.create_task(uuid2).await.unwrap());
+            drop(txn); // rolled back
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        let uuids = txn.all_task_uuids().await.unwrap();
+        assert_eq!(uuids, [uuid1]);
+    }
+
+    #[tokio::test]
+    async fn create() {
+        let mut storage = setup_storage().await;
+        let uuid = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn.create_task(uuid).await.unwrap());
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        let task = txn.get_task(uuid).await.unwrap();
+        assert_eq!(task, Some(taskmap_with(vec![])));
+    }
+
+    #[tokio::test]
+    async fn create_exists() {
+        let mut storage = setup_storage().await;
+        let uuid = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn.create_task(uuid).await.unwrap());
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        assert!(!txn.create_task(uuid).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn get_missing() {
+        let mut storage = setup_storage().await;
+        let uuid = Uuid::new_v4();
+        let mut txn = storage.txn().await.unwrap();
+        let task = txn.get_task(uuid).await.unwrap();
+        assert_eq!(task, None);
+    }
+
+    #[tokio::test]
+    async fn set_task() {
+        let mut storage = setup_storage().await;
+        let uuid = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.set_task(uuid, taskmap_with(vec![("k".to_string(), "v".to_string())]))
+                .await
+                .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        let task = txn.get_task(uuid).await.unwrap();
+        assert_eq!(
+            task,
+            Some(taskmap_with(vec![("k".to_string(), "v".to_string())]))
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_task_missing() {
+        let mut storage = setup_storage().await;
+        let uuid = Uuid::new_v4();
+        let mut txn = storage.txn().await.unwrap();
+        assert!(!txn.delete_task(uuid).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn delete_task_exists() {
+        let mut storage = setup_storage().await;
+        let uuid = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn.create_task(uuid).await.unwrap());
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        assert!(txn.delete_task(uuid).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn all_tasks_empty() {
+        let mut storage = setup_storage().await;
+        let mut txn = storage.txn().await.unwrap();
+        let tasks = txn.all_tasks().await.unwrap();
+        assert_eq!(tasks, vec![]);
+    }
+
+    #[tokio::test]
+    async fn all_tasks_and_uuids() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn.create_task(uuid1).await.unwrap());
+            txn.set_task(
+                uuid1,
+                taskmap_with(vec![("num".to_string(), "1".to_string())]),
+            )
+            .await
+            .unwrap();
+            assert!(txn.create_task(uuid2).await.unwrap());
+            txn.set_task(
+                uuid2,
+                taskmap_with(vec![("num".to_string(), "2".to_string())]),
+            )
+            .await
+            .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let mut tasks = txn.all_tasks().await.unwrap();
+            tasks.sort_by(|a, b| a.0.cmp(&b.0));
+            let mut exp = vec![
+                (
+                    uuid1,
+                    taskmap_with(vec![("num".to_string(), "1".to_string())]),
+                ),
+                (
+                    uuid2,
+                    taskmap_with(vec![("num".to_string(), "2".to_string())]),
+                ),
+            ];
+            exp.sort_by(|a, b| a.0.cmp(&b.0));
+            assert_eq!(tasks, exp);
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let mut uuids = txn.all_task_uuids().await.unwrap();
+            uuids.sort();
+            let mut exp = vec![uuid1, uuid2];
+            exp.sort();
+            assert_eq!(uuids, exp);
+        }
+    }
+
+    #[tokio::test]
+    async fn pending_tasks_empty() {
+        let mut storage = setup_storage().await;
+        let mut txn = storage.txn().await.unwrap();
+        let tasks = txn.get_pending_tasks().await.unwrap();
+        assert_eq!(tasks, vec![]);
+    }
+
+    #[tokio::test]
+    async fn pending_tasks() {
+        let mut storage = setup_storage().await;
+        let uuids = [Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4()];
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            for (i, uuid) in uuids.iter().enumerate() {
+                assert!(txn.create_task(*uuid).await.unwrap());
+                txn.set_task(
+                    *uuid,
+                    taskmap_with(vec![("num".to_string(), i.to_string())]),
+                )
+                .await
+                .unwrap();
+            }
+            txn.add_to_working_set(uuids[0]).await.unwrap();
+            txn.add_to_working_set(uuids[1]).await.unwrap();
+            txn.add_to_working_set(uuids[2]).await.unwrap();
+            txn.add_to_working_set(Uuid::new_v4()).await.unwrap(); // unknown uuid
+            txn.set_working_set_item(1, None).await.unwrap(); // clear slot 1
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        let mut tasks = txn.get_pending_tasks().await.unwrap();
+        tasks.sort_by(|a, b| a.0.cmp(&b.0));
+        let mut exp = vec![
+            (
+                uuids[1],
+                taskmap_with(vec![("num".to_string(), "1".to_string())]),
+            ),
+            (
+                uuids[2],
+                taskmap_with(vec![("num".to_string(), "2".to_string())]),
+            ),
+        ];
+        exp.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(tasks, exp);
+    }
+
+    #[tokio::test]
+    async fn base_version_default() {
+        let mut storage = setup_storage().await;
+        let mut txn = storage.txn().await.unwrap();
+        assert_eq!(txn.base_version().await.unwrap(), Uuid::nil());
+    }
+
+    #[tokio::test]
+    async fn base_version_setting() {
+        let mut storage = setup_storage().await;
+        let u = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.set_base_version(u).await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        let mut txn = storage.txn().await.unwrap();
+        assert_eq!(txn.base_version().await.unwrap(), u);
+    }
+
+    #[tokio::test]
+    async fn unsynced_operations() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+        let uuid3 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid1 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid2 })
+                .await
+                .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ops = txn.unsynced_operations().await.unwrap();
+            assert_eq!(
+                ops,
+                vec![
+                    Operation::Create { uuid: uuid1 },
+                    Operation::Create { uuid: uuid2 },
+                ]
+            );
+            assert_eq!(txn.num_unsynced_operations().await.unwrap(), 2);
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.sync_complete().await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid3 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::Delete {
+                uuid: uuid3,
+                old_task: TaskMap::new(),
+            })
+            .await
+            .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ops = txn.unsynced_operations().await.unwrap();
+            assert_eq!(
+                ops,
+                vec![
+                    Operation::Create { uuid: uuid3 },
+                    Operation::Delete {
+                        uuid: uuid3,
+                        old_task: TaskMap::new()
+                    },
+                ]
+            );
+            assert_eq!(txn.num_unsynced_operations().await.unwrap(), 2);
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.remove_operation(Operation::Delete {
+                uuid: uuid3,
+                old_task: TaskMap::new(),
+            })
+            .await
+            .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ops = txn.unsynced_operations().await.unwrap();
+            assert_eq!(ops, vec![Operation::Create { uuid: uuid3 }]);
+            assert_eq!(txn.num_unsynced_operations().await.unwrap(), 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn remove_operations() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+        let uuid3 = Uuid::new_v4();
+        let uuid4 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.create_task(uuid1).await.unwrap();
+            txn.create_task(uuid2).await.unwrap();
+            txn.create_task(uuid3).await.unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid1 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid2 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid3 })
+                .await
+                .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        // Remove the last operation (uuid3)
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.remove_operation(Operation::Create { uuid: uuid3 })
+                .await
+                .unwrap();
+            assert_eq!(txn.num_unsynced_operations().await.unwrap(), 2);
+            txn.commit().await.unwrap();
+        }
+
+        // Remove a nonexistent operation
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn
+                .remove_operation(Operation::Create { uuid: uuid4 })
+                .await
+                .is_err());
+        }
+
+        // Remove an operation that is not the most recent
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn
+                .remove_operation(Operation::Create { uuid: uuid1 })
+                .await
+                .is_err());
+        }
+
+        // Mark operations as synced
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.sync_complete().await.unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        // Try to remove a synced operation
+        {
+            let mut txn = storage.txn().await.unwrap();
+            assert!(txn
+                .remove_operation(Operation::Create { uuid: uuid2 })
+                .await
+                .is_err());
+        }
+    }
+
+    #[tokio::test]
+    async fn task_operations() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+        let uuid3 = Uuid::new_v4();
+        let now = Utc::now();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.create_task(uuid1).await.unwrap();
+            txn.create_task(uuid2).await.unwrap();
+            txn.create_task(uuid3).await.unwrap();
+            txn.add_operation(Operation::UndoPoint).await.unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid1 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid1 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::UndoPoint).await.unwrap();
+            txn.add_operation(Operation::Delete {
+                uuid: uuid2,
+                old_task: TaskMap::new(),
+            })
+            .await
+            .unwrap();
+            txn.add_operation(Operation::Update {
+                uuid: uuid3,
+                property: "p".into(),
+                old_value: None,
+                value: Some("P".into()),
+                timestamp: now,
+            })
+            .await
+            .unwrap();
+            txn.add_operation(Operation::Delete {
+                uuid: uuid3,
+                old_task: TaskMap::new(),
+            })
+            .await
+            .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        // Remove the last operation so it doesn't appear in results
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.remove_operation(Operation::Delete {
+                uuid: uuid3,
+                old_task: TaskMap::new(),
+            })
+            .await
+            .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            let ops = txn.get_task_operations(uuid1).await.unwrap();
+            assert_eq!(
+                ops,
+                vec![
+                    Operation::Create { uuid: uuid1 },
+                    Operation::Create { uuid: uuid1 },
+                ]
+            );
+            let ops = txn.get_task_operations(uuid2).await.unwrap();
+            assert_eq!(
+                ops,
+                vec![Operation::Delete {
+                    uuid: uuid2,
+                    old_task: TaskMap::new()
+                }]
+            );
+            let ops = txn.get_task_operations(uuid3).await.unwrap();
+            assert_eq!(
+                ops,
+                vec![Operation::Update {
+                    uuid: uuid3,
+                    property: "p".into(),
+                    old_value: None,
+                    value: Some("P".into()),
+                    timestamp: now,
+                }]
+            );
+        }
+
+        // Sync and verify task operations persist
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.sync_complete().await.unwrap();
+            assert_eq!(txn.get_task_operations(uuid1).await.unwrap().len(), 2);
+            assert_eq!(txn.get_task_operations(uuid2).await.unwrap().len(), 1);
+            assert_eq!(txn.get_task_operations(uuid3).await.unwrap().len(), 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn sync_complete() {
+        let mut storage = setup_storage().await;
+        let uuid1 = Uuid::new_v4();
+        let uuid2 = Uuid::new_v4();
+
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.create_task(uuid1).await.unwrap();
+            txn.create_task(uuid2).await.unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid1 })
+                .await
+                .unwrap();
+            txn.add_operation(Operation::Create { uuid: uuid2 })
+                .await
+                .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        // Sync: both task operations should persist
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.sync_complete().await.unwrap();
+            assert_eq!(txn.get_task_operations(uuid1).await.unwrap().len(), 1);
+            assert_eq!(txn.get_task_operations(uuid2).await.unwrap().len(), 1);
+        }
+
+        // Delete uuid2
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.delete_task(uuid2).await.unwrap();
+            txn.add_operation(Operation::Delete {
+                uuid: uuid2,
+                old_task: TaskMap::new(),
+            })
+            .await
+            .unwrap();
+            txn.commit().await.unwrap();
+        }
+
+        // Sync again: uuid1 ops remain, uuid2 ops are cleaned up
+        {
+            let mut txn = storage.txn().await.unwrap();
+            txn.sync_complete().await.unwrap();
+            assert_eq!(txn.get_task_operations(uuid1).await.unwrap().len(), 1);
+            assert_eq!(txn.get_task_operations(uuid2).await.unwrap().len(), 0);
+        }
+    }
 }
