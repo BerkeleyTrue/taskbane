@@ -3,7 +3,16 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] authorize use through task and key
+- [x] create sqlx task storage
+  - [ ] fix: utf decoding issue
+  - [ ] add tests suite
+- [ ] add complete task action
+- [ ] add create task view
+- [ ] add single task view with annotations
+
+## Done
+
+- [x] authorize use through task and key
   - [x] prevent unauthorised user from seeing tasks
   - [x] unauthorised users should be shown authorize page with task token
     - [x] show user authorize button, search for token
@@ -15,7 +24,3 @@ a mobile first taskwarrior ui
   - [x] create template
   - [x] send down for errors
   - [x] add to session storage
-- [ ] create sqlx task storage
-- [ ] add complete task action
-- [ ] add create task view
-- [ ] add single task view with annotations
