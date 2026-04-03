@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use std::{env, fmt::Display, sync::Arc};
 
 use anyhow::{Error, Result};
@@ -84,7 +83,11 @@ struct SqlxStorage {
 #[async_trait]
 impl Storage for SqlxStorage {
     async fn txn<'a>(&'a mut self) -> TcResult<Box<dyn StorageTxn + Send + 'a>> {
-        let tx = self.conn.begin().await.map_err(map_to_tc_err)?;
+        let tx = self
+            .conn
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(to_tc_err)?;
         Ok(Box::new(Txn::new(self, Some(tx))))
     }
 }
@@ -101,6 +104,16 @@ impl<'t> Txn<'t> {
             .as_mut()
             .ok_or(TcError::Database("transaction already commited".to_owned()))
     }
+
+    async fn get_next_working_set_number(&mut self) -> TcResult<usize> {
+        let tx = self.get_txn()?;
+        let next_id = query!("SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM taskdb_working_set")
+            .fetch_one(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .next_id;
+        Ok(next_id as usize)
+    }
 }
 
 #[async_trait]
@@ -111,10 +124,10 @@ impl StorageTxn for Txn<'_> {
         let task = query!("SELECT data FROM taskdb_tasks WHERE uuid = ? LIMIT 1", uuid)
             .fetch_optional(&mut **tx)
             .await
-            .map_err(map_to_tc_err)?
+            .map_err(to_tc_err)?
             .map(|r| serde_json::from_str::<TaskMap>(&r.data))
             .transpose()
-            .map_err(map_to_tc_err)?;
+            .map_err(to_tc_err)?;
         Ok(task)
     }
 
@@ -130,15 +143,15 @@ impl StorageTxn for Txn<'_> {
         )
         .fetch_all(&mut **tx)
         .await
-        .map_err(map_to_tc_err)?
+        .map_err(to_tc_err)?
         .into_iter()
         .map(|r| -> TcResult<_> {
             let uuid = r
                 .uuid
                 .map(|s| Uuid::parse_str(&s))
                 .expect("pk is never null??")
-                .map_err(map_to_tc_err)?;
-            let taskmap = serde_json::from_str::<TaskMap>(&r.data).map_err(map_to_tc_err)?;
+                .map_err(to_tc_err)?;
+            let taskmap = serde_json::from_str::<TaskMap>(&r.data).map_err(to_tc_err)?;
             Ok((uuid, taskmap))
         })
         .collect::<TcResult<Vec<_>>>()?;
@@ -149,91 +162,250 @@ impl StorageTxn for Txn<'_> {
     /// Create an (empty) task, only if it does not already exist.  Returns true if
     /// the task was created (did not already exist).
     async fn create_task(&mut self, uuid: Uuid) -> TcResult<bool> {
-        todo!()
-        // verify no task of uuid exists
-        // query!("SELECT count(uuid) FROM taskdb_tasks WHERE uuid = ?", uuid)
-        //     .fetch_optional(&mut *self.tx)
-        //     .await
+        let tx = self.get_txn()?;
+        let rows_affected = query!(
+            "INSERT OR IGNORE INTO taskdb_tasks (uuid, data) VALUES (?, ?)",
+            uuid,
+            "{}"
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(to_tc_err)?
+        .rows_affected();
+        Ok(rows_affected > 0)
     }
 
     /// Set a task, overwriting any existing task.  If the task does not exist, this implicitly
     /// creates it (use `get_task` to check first, if necessary).
     async fn set_task(&mut self, uuid: Uuid, task: TaskMap) -> TcResult<()> {
-        todo!();
+        let tx = self.get_txn()?;
+        let data = serde_json::to_string(&task).map_err(to_tc_err)?;
+        query!(
+            "INSERT OR REPLACE INTO taskdb_tasks (uuid, data) VALUES (?, ?)",
+            uuid,
+            data
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
+        Ok(())
     }
 
     /// Delete a task, if it exists.  Returns true if the task was deleted (already existed)
     async fn delete_task(&mut self, uuid: Uuid) -> TcResult<bool> {
-        todo!();
+        let tx = self.get_txn()?;
+        let rows_affected = query!("DELETE FROM taskdb_tasks WHERE uuid = ?", uuid)
+            .execute(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .rows_affected();
+        Ok(rows_affected > 0)
     }
 
     /// Get the uuids and bodies of all tasks in the storage, in undefined order.
     async fn all_tasks(&mut self) -> TcResult<Vec<(Uuid, TaskMap)>> {
-        todo!();
+        let tx = self.get_txn()?;
+        let res = query!("SELECT uuid, data FROM taskdb_tasks")
+            .fetch_all(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .into_iter()
+            .map(|r| -> TcResult<_> {
+                let uuid = r
+                    .uuid
+                    .map(|s| Uuid::parse_str(&s))
+                    .expect("pk should never be null?")
+                    .map_err(to_tc_err)?;
+                let taskmap = serde_json::from_str::<TaskMap>(&r.data).map_err(to_tc_err)?;
+                Ok((uuid, taskmap))
+            })
+            .collect::<TcResult<Vec<_>>>()?;
+        Ok(res)
     }
 
     /// Get the uuids of all tasks in the storage, in undefined order.
     async fn all_task_uuids(&mut self) -> TcResult<Vec<Uuid>> {
-        todo!();
+        let tx = self.get_txn()?;
+        let res = query!("SELECT uuid FROM taskdb_tasks")
+            .fetch_all(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .into_iter()
+            .map(|r| {
+                r.uuid
+                    .map(|s| Uuid::parse_str(&s))
+                    .expect("pk should never be null")
+                    .map_err(to_tc_err)
+            })
+            .collect::<TcResult<Vec<_>>>()?;
+        Ok(res)
     }
 
     /// Get the current base_version for this storage -- the last version synced from the server.
     /// If no version has been set, this returns the nil version.
     async fn base_version(&mut self) -> TcResult<VersionId> {
-        todo!();
+        let tx = self.get_txn()?;
+        let version = query!("SELECT value FROM taskdb_sync_meta WHERE key = 'base_version'")
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .map(|r| Uuid::parse_str(&r.value).map_err(to_tc_err))
+            .transpose()?
+            .unwrap_or(Uuid::nil());
+        Ok(version)
     }
 
     /// Set the current base_version for this storage.
     async fn set_base_version(&mut self, version: VersionId) -> TcResult<()> {
-        todo!();
+        let tx = self.get_txn()?;
+        let version_str = version.to_string();
+        query!(
+            "INSERT OR REPLACE INTO taskdb_sync_meta (key, value) VALUES ('base_version', ?)",
+            version_str
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
+        Ok(())
     }
 
     /// Get the set of operations for the given task.
     async fn get_task_operations(&mut self, uuid: Uuid) -> TcResult<Vec<Operation>> {
-        todo!();
+        let tx = self.get_txn()?;
+        let res = query!(
+            "SELECT data FROM taskdb_operations WHERE uuid = ? ORDER BY id ASC",
+            uuid
+        )
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(to_tc_err)?
+        .into_iter()
+        .map(|r| serde_json::from_str::<Operation>(&r.data).map_err(to_tc_err))
+        .collect::<TcResult<Vec<_>>>()?;
+        Ok(res)
     }
 
     /// Get the current set of outstanding operations (operations that have not been synced to the
     /// server yet)
     async fn unsynced_operations(&mut self) -> TcResult<Vec<Operation>> {
-        todo!();
+        let tx = self.get_txn()?;
+        let res = query!("SELECT data FROM taskdb_operations WHERE NOT synced ORDER BY id ASC")
+            .fetch_all(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .into_iter()
+            .map(|r| serde_json::from_str::<Operation>(&r.data).map_err(to_tc_err))
+            .collect::<TcResult<Vec<_>>>()?;
+        Ok(res)
     }
 
     /// Get the current set of outstanding operations (operations that have not been synced to the
     /// server yet)
     async fn num_unsynced_operations(&mut self) -> TcResult<usize> {
-        todo!();
+        let tx = self.get_txn()?;
+        let count = query!("SELECT count(*) as count FROM taskdb_operations WHERE NOT synced")
+            .fetch_one(&mut **tx)
+            .await
+            .map_err(to_tc_err)?
+            .count as usize;
+        Ok(count)
     }
 
     /// Add an operation to the end of the list of operations in the storage.  Note that this
     /// merely *stores* the operation; it is up to the TaskDb to apply it.
     async fn add_operation(&mut self, op: Operation) -> TcResult<()> {
-        todo!();
+        let tx = self.get_txn()?;
+        let data = serde_json::to_string(&op).map_err(to_tc_err)?;
+        query!("INSERT INTO taskdb_operations (data) VALUES (?)", data)
+            .execute(&mut **tx)
+            .await
+            .map_err(to_tc_err)?;
+        Ok(())
     }
 
     /// Remove an operation from the end of the list of operations in the storage.  The operation
     /// must exactly match the most recent operation, and must not be synced. Note that like
     /// `add_operation` this only affects the list of operations.
     async fn remove_operation(&mut self, op: Operation) -> TcResult<()> {
-        todo!();
+        let tx = self.get_txn()?;
+        let last = query!(
+            "SELECT id, data FROM taskdb_operations WHERE NOT synced ORDER BY id DESC LIMIT 1"
+        )
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
+
+        if let Some(row) = last {
+            let last_op = serde_json::from_str::<Operation>(&row.data).map_err(to_tc_err)?;
+            if last_op == op {
+                query!("DELETE FROM taskdb_operations WHERE id = ?", row.id)
+                    .execute(&mut **tx)
+                    .await
+                    .map_err(to_tc_err)?;
+                return Ok(());
+            }
+        }
+
+        Err(TcError::Database(
+            "Last operation does not match -- cannot remove".to_owned(),
+        ))
     }
 
     /// A sync has been completed, so all operations should be marked as synced. The storage
     /// may perform additional cleanup at this time.
     async fn sync_complete(&mut self) -> TcResult<()> {
-        todo!();
+        let tx = self.get_txn()?;
+        query!("UPDATE taskdb_operations SET synced = true WHERE synced = false")
+            .execute(&mut **tx)
+            .await
+            .map_err(to_tc_err)?;
+        query!(
+            r#"DELETE FROM taskdb_operations
+               WHERE uuid IN (
+                   SELECT taskdb_operations.uuid FROM taskdb_operations
+                   LEFT JOIN taskdb_tasks ON taskdb_operations.uuid = taskdb_tasks.uuid
+                   WHERE taskdb_tasks.uuid IS NULL
+               )"#
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
+        Ok(())
     }
 
     /// Get the entire working set, with each task UUID at its appropriate (1-based) index.
     /// Element 0 is always None.
     async fn get_working_set(&mut self) -> TcResult<Vec<Option<Uuid>>> {
-        todo!();
+        let tx = self.get_txn()?;
+        let rows = query!("SELECT id, uuid FROM taskdb_working_set ORDER BY id ASC")
+            .fetch_all(&mut **tx)
+            .await
+            .map_err(to_tc_err)?;
+
+        let next_id = self.get_next_working_set_number().await?;
+        let mut result = vec![None; next_id];
+        for row in rows {
+            let uuid = Uuid::parse_str(&row.uuid).map_err(to_tc_err)?;
+            result[row.id as usize] = Some(uuid);
+        }
+        Ok(result)
     }
 
     /// Add a task to the working set and return its (one-based) index.  This index will be one greater
     /// than the highest used index.
     async fn add_to_working_set(&mut self, uuid: Uuid) -> TcResult<usize> {
-        todo!();
+        let next_id = self.get_next_working_set_number().await?;
+        let next_id_i64 = next_id as i64;
+        let tx = self.get_txn()?;
+        query!(
+            "INSERT INTO taskdb_working_set (id, uuid) VALUES (?, ?)",
+            next_id_i64,
+            uuid
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(to_tc_err)?;
+        Ok(next_id)
     }
 
     /// Update the working set task at the given index.  This cannot add a new item to the
@@ -244,6 +416,7 @@ impl StorageTxn for Txn<'_> {
 
         match uuid {
             Some(uuid) => {
+                // uuid is dropped before await
                 query!(
                     "INSERT OR REPLACE INTO taskdb_working_set (id, uuid) VALUES (?, ?)",
                     index,
@@ -258,7 +431,7 @@ impl StorageTxn for Txn<'_> {
                     .await
             }
         }
-        .map_err(map_to_tc_err)?;
+        .map_err(to_tc_err)?;
 
         Ok(())
     }
@@ -270,7 +443,7 @@ impl StorageTxn for Txn<'_> {
         query!("DELETE FROM taskdb_working_set")
             .execute(&mut **tx)
             .await
-            .map_err(map_to_tc_err)?;
+            .map_err(to_tc_err)?;
         Ok(())
     }
 
@@ -284,11 +457,11 @@ impl StorageTxn for Txn<'_> {
             ))?
             .commit()
             .await
-            .map_err(map_to_tc_err)
+            .map_err(to_tc_err)
         // Ok(())
     }
 }
 
-fn map_to_tc_err<E: Display>(err: E) -> TcError {
+fn to_tc_err<E: Display>(err: E) -> TcError {
     TcError::Database(err.to_string())
 }
