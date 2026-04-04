@@ -4,6 +4,26 @@
 {% block title %}Task {{ task.id }}{% endblock %}
 
 {% block content %}
+  <a href="/task">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="lucide lucide-square-arrow-left-icon lucide-square-arrow-left"
+    >
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="m12 8-4 4 4 4" />
+      <path d="M16 12H8" />
+    </svg>
+    All tasks
+  </a>
+
   <section>
     <article
       id="task-card"
@@ -13,12 +33,6 @@
       {% else if task.is_blocking %}
         blocking
       {% endif %}
-
-
-
-
-
-
       {% match task.due_status %}
         {% when crate::core::models::task::TaskDueStatus::Due %}
         due {% when crate::core::models::task::TaskDueStatus::DueSoon %}
@@ -94,9 +108,9 @@
 
       <footer>
         <a
-          class="contrast outline"
           role="button"
-          href="/task/{{ task.id }}/done"
+          class="contrast outline"
+          hx-get="/task/{{ task.id }}/done"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -118,6 +132,5 @@
         </a>
       </footer>
     </article>
-    <a href="/task">← Back to tasks</a>
   </section>
 {% endblock %}
