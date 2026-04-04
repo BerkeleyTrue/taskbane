@@ -3,8 +3,8 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] add create task view
 - [ ] add single task view with annotations
+- [ ] add create task view
 
 ## Done
 

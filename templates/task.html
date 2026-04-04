@@ -16,6 +16,8 @@
           blocking
         {% endif %}
 
+
+
         {% match task.due_status %}
           {% when crate::core::models::task::TaskDueStatus::Due %}
           due {% when crate::core::models::task::TaskDueStatus::DueSoon %}
@@ -75,14 +77,53 @@
           {% if !task.deps.is_empty() %}
             <span id="task-deps">{{ task.deps }}</span>
           {% endif %}
+          <a 
+            hx-get="/task/{{ task.uuid }}"
+            hx-target="body"
+            hx-push-url="true"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-eye-icon lucide-eye"
+            >
+              <path
+                d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+              />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </a>
           <button
-            class="secondary"
+            class="secondary outline"
             hx-get="/task/{{ task.uuid }}/confirm-done"
             hx-target="#modal-task_done"
             hx-swap="outerHTML"
             hx-on::after-request="openModal(document.getElementById('modal-task_done'))"
           >
-            Mark Done
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-square-check-big-icon lucide-square-check-big"
+            >
+              <path
+                d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"
+              />
+              <path d="m9 11 3 3L22 4" />
+            </svg>
           </button>
         </footer>
       </article>
@@ -91,7 +132,6 @@
       <p><em>No tasks found.</em></p>
     {% endif %}
   </section>
-
 {% endblock %}
 
 {% block oob_content %}

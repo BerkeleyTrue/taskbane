@@ -21,11 +21,12 @@ use crate::{
 
 pub fn task_routes(task_service: TaskService) -> axum::Router {
     Router::new()
-        .route("/task", routing::get(get_task))
+        .route("/task", routing::get(get_tasks))
         .route(
             "/tasks",
             routing::get(async || Redirect::permanent("/task")),
         )
+        .route("/task/{id}", routing::get(get_task))
         .route("/task/{id}/confirm-done", routing::get(get_confirm_done))
         .route("/task/{id}/done", routing::post(post_mark_task_down))
         .layer(middleware::from_fn(unauth_middleware))
@@ -34,13 +35,13 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "task.html")]
-struct TaskPage {
+struct TaskListPage {
     is_authed: bool,
     tasks: Vec<TaskDto>,
     globals: Globals,
 }
 
-pub async fn get_task(
+pub async fn get_tasks(
     session: Session,
     auth_state: SessionAuthState,
     task_service: State<TaskService>,
@@ -50,11 +51,35 @@ pub async fn get_task(
         AppError::InternalServerError
     })?;
 
-    let templ = TaskPage {
+    let templ = TaskListPage {
         is_authed: auth_state.is_authed(),
         tasks,
         globals: Globals::fetch(&session).await,
     };
+    Ok(HtmlTemplate(templ))
+}
+
+#[derive(Debug, Clone, Template, Constructor)]
+#[template(path = "task_detail.html")]
+struct TaskPage {
+    is_authed: bool,
+    task: TaskDto,
+    globals: Globals,
+}
+
+pub async fn get_task(
+    Path(id): Path<Uuid>,
+    session: Session,
+    auth_state: SessionAuthState,
+    task_service: State<TaskService>,
+) -> Result<impl IntoResponse, AppError> {
+    let task = task_service.get_task(id).await.map_err(|err| {
+        info!("Error getting tasks: {:?}", err);
+        AppError::NotFound
+    })?;
+
+    let templ = TaskPage::new(auth_state.is_authed(), task, Globals::fetch(&session).await);
+
     Ok(HtmlTemplate(templ))
 }
 

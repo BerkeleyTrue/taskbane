@@ -3,7 +3,7 @@ use std::str::FromStr;
 use itertools::Itertools;
 use taskchampion::{
     chrono::{DateTime, Duration, Local, Utc},
-    Status, Tag, Task,
+    Annotation, Status, Tag, Task,
 };
 use uuid::Uuid;
 
@@ -40,6 +40,7 @@ pub struct TaskDto {
     pub description: String,
     pub due: Option<String>,
     pub due_status: TaskDueStatus,
+    pub annotations: Vec<Annotation>,
 
     pub is_blocked: bool,
     pub is_blocking: bool,
@@ -116,6 +117,7 @@ impl TaskDto {
             is_blocking: task.is_blocking(),
             tags: user_tags.iter().join(" "),
             deps: deps.iter().join(" "),
+            annotations: task.get_annotations().collect(),
             due,
             due_status,
             urgency: next_urg
