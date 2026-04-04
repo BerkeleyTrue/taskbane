@@ -15,6 +15,25 @@ pub struct TaskRepo<S: Storage + Sync> {
 
 #[async_trait]
 impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
+    async fn get_task(&self, uuid: Uuid) -> Result<Option<Task>> {
+        let mut rep = self.replica.write().await;
+        let task = rep.get_task(uuid).await?;
+
+        Ok(task)
+    }
+
+    async fn get_task_meta(&self, uuid: Uuid, deps: Vec<Uuid>) -> Result<(usize, Vec<usize>)> {
+        let mut rep = self.replica.write().await;
+        let ws = rep.working_set().await?;
+        let id = ws.by_uuid(uuid).ok_or(anyhow!("No ws_id found for uuid"))?;
+        let deps = deps
+            .into_iter()
+            .filter_map(|uuid| ws.by_uuid(uuid))
+            .collect();
+
+        Ok((id, deps))
+    }
+
     async fn list(&self) -> Result<Vec<(usize, Task, Vec<usize>)>> {
         let mut rep = self.replica.write().await;
         let ws = rep.working_set().await?;
