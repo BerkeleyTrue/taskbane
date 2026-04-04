@@ -15,6 +15,10 @@
       {% endif %}
 
 
+
+
+
+
       {% match task.due_status %}
         {% when crate::core::models::task::TaskDueStatus::Due %}
         due {% when crate::core::models::task::TaskDueStatus::DueSoon %}
@@ -67,16 +71,51 @@
       <div id="task-desc">
         <p>{{ task.description }}</p>
       </div>
-      <footer>
+
+      {% if !task.annotations.is_empty() %}
+        <ul id="task-annotations">
+          {% for annotation in task.annotations %}
+            <li class="task-annotation">
+              <time>{{ annotation.entry }}</time>
+              <span>{{ annotation.description }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <div id="task-deps-tags">
         {% if !task.tags.is_empty() %}
-          <span id="task-tags">{{ task.tags }}</span>
+          <div id="task-tags">{{ task.tags }}</div>
         {% endif %}
         {% if !task.deps.is_empty() %}
-          <span id="task-deps">{{ task.deps }}</span>
+          <div id="task-deps">{{ task.deps }}</div>
         {% endif %}
-        <a href="/task/{{ task.id }}/done" role="button" class="secondary"
-          >Mark done</a
+      </div>
+
+      <footer>
+        <a
+          class="contrast outline"
+          role="button"
+          href="/task/{{ task.id }}/done"
         >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-square-check-big-icon lucide-square-check-big"
+          >
+            <path
+              d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344"
+            />
+            <path d="m9 11 3 3L22 4" />
+          </svg>
+        </a>
       </footer>
     </article>
     <a href="/task">← Back to tasks</a>

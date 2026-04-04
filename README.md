@@ -3,11 +3,11 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] add single task view with annotations
 - [ ] add create task view
 
 ## Done
 
+- [x] add single task view with annotations
 - [x] authorize use through task and key
   - [x] prevent unauthorised user from seeing tasks
   - [x] unauthorised users should be shown authorize page with task token
