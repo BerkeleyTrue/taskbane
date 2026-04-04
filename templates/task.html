@@ -18,6 +18,8 @@
 
 
 
+
+
         {% match task.due_status %}
           {% when crate::core::models::task::TaskDueStatus::Due %}
           due {% when crate::core::models::task::TaskDueStatus::DueSoon %}
@@ -67,17 +69,23 @@
             </div>
           </div>
         </header>
+
         <div id="task-desc">
           <span>{{ task.description }}</span>
         </div>
-        <footer>
+        <div id="task-deps-tags">
           {% if !task.tags.is_empty() %}
-            <span id="task-tags">{{ task.tags }}</span>
+            <div id="task-tags">{{ task.tags }}</div>
           {% endif %}
           {% if !task.deps.is_empty() %}
-            <span id="task-deps">{{ task.deps }}</span>
+            <div id="task-deps">{{ task.deps }}</div>
           {% endif %}
-          <a 
+        </div>
+
+        <footer>
+          <a
+            role="button"
+            class="outline primary"
             hx-get="/task/{{ task.uuid }}"
             hx-target="body"
             hx-push-url="true"
@@ -100,8 +108,9 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
           </a>
+
           <button
-            class="secondary outline"
+            class="contrast outline"
             hx-get="/task/{{ task.uuid }}/confirm-done"
             hx-target="#modal-task_done"
             hx-swap="outerHTML"

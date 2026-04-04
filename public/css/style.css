@@ -232,7 +232,9 @@ main > article {
   border-left: 4px solid;
   margin-bottom: 0.5rem;
   pointer-events: auto;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .alert.dismissing {
@@ -271,9 +273,17 @@ main > article {
 #task-card header,
 #task-card footer,
 #task-card #task-meta {
+  align-items: center;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+}
+
+#task-card footer {
+  justify-content: flex-end;
+  margin-top: 0;
+}
+#task-card footer > :not(:last-child) {
+  margin-right: 12px;
 }
 
 #task-card #task-urg {
@@ -326,4 +336,10 @@ main > article {
 #authorize-user footer {
   display: flex;
   justify-content: space-between;
+}
+
+#task-deps-tags {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
 }
