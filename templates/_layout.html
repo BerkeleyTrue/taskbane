@@ -13,13 +13,17 @@
     {% include "partials/alerts.html" %}
     {% include "partials/navbar.html" %}
 
-    <main class="container">{% block content %}{% endblock %}</main>
+    <main class="container">
+    {% block content %}{% endblock %}
+    {% block oob_content %}{% endblock %}
+    </main>
 
     <footer>
       <p>Insert Feet Pics</p>
     </footer>
     <script src="/public/js/livereload.js"></script>
     <script src="/public/js/htmx.js"></script>
+    <script src="/public/js/modal.js"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

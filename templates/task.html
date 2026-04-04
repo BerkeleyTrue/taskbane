@@ -4,7 +4,7 @@
 {% block title %}Tasks{% endblock %}
 
 {% block content %}
-  <section>
+  <section id="task-list">
     <h1>Tasks</h1>
     {% for task in tasks %}
       <article
@@ -16,13 +16,12 @@
           blocking
         {% endif %}
 
-
         {% match task.due_status %}
-          {% when crate::core::models::task::TaskDueStatus::Due %} due 
-          {% when crate::core::models::task::TaskDueStatus::DueSoon %} due-soon
-          {% when crate::core::models::task::TaskDueStatus::DueToday %} due-today
-          {% when crate::core::models::task::TaskDueStatus::OverDue %} overdue
-          {% when _ %}
+          {% when crate::core::models::task::TaskDueStatus::Due %}
+          due {% when crate::core::models::task::TaskDueStatus::DueSoon %}
+          due-soon {% when crate::core::models::task::TaskDueStatus::DueToday %}
+          due-today {% when crate::core::models::task::TaskDueStatus::OverDue %}
+          overdue {% when _ %}
         {% endmatch %}"
       >
         <header>
@@ -76,6 +75,15 @@
           {% if !task.deps.is_empty() %}
             <span id="task-deps">{{ task.deps }}</span>
           {% endif %}
+          <button
+            class="secondary"
+            hx-get="/task/{{ task.uuid }}/confirm-done"
+            hx-target="#modal-task_done"
+            hx-swap="outerHTML"
+            hx-on::after-request="openModal(document.getElementById('modal-task_done'))"
+          >
+            Mark Done
+          </button>
         </footer>
       </article>
     {% endfor %}
@@ -83,4 +91,9 @@
       <p><em>No tasks found.</em></p>
     {% endif %}
   </section>
+
+{% endblock %}
+
+{% block oob_content %}
+  <dialog id="modal-task_done"></dialog>
 {% endblock %}

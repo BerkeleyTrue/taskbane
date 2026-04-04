@@ -1,0 +1,35 @@
+{# set vim: set ft=jinja: #}
+<dialog id="modal-task_done">
+  <article>
+    <header>
+      <button
+        aria-label="Close"
+        rel="prev"
+        data-target="modal-task_done"
+        onclick="toggleModal(event)"
+      ></button>
+      <h3>Confirm task {{ task.id }} done</h3>
+    </header>
+    <p>{{ task.description }}</p>
+    <footer>
+      <button
+        role="button"
+        class="secondary"
+        data-target="modal-task_done"
+        onclick="toggleModal(event)"
+      >
+        Cancel
+      </button>
+      <button
+        hx-post="/task/{{ task.uuid }}/done"
+        hx-target="#task-list"
+        hx-swap="outerHTML"
+        hx-on::after-request="toggleModal(event)"
+        autofocus
+        data-target="modal-task_done"
+      >
+        Confirm
+      </button>
+    </footer>
+  </article>
+</dialog>

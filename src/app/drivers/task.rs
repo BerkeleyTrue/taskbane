@@ -1,11 +1,11 @@
 use askama::Template;
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect},
     routing, Router,
 };
+use derive_more::Constructor;
 use tower_sessions::Session;
 use tracing::info;
 use uuid::Uuid;
@@ -26,7 +26,8 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
             "/tasks",
             routing::get(async || Redirect::permanent("/task")),
         )
-        .route("/task/{id}/done", routing::get(post_mark_task_down))
+        .route("/task/{id}/confirm-done", routing::get(get_confirm_done))
+        .route("/task/{id}/done", routing::post(post_mark_task_down))
         .layer(middleware::from_fn(unauth_middleware))
         .with_state(task_service)
 }
@@ -57,6 +58,32 @@ pub async fn get_task(
     Ok(HtmlTemplate(templ))
 }
 
+#[derive(Debug, Clone, Template, Constructor)]
+#[template(path = "partials/modal-task_done.html")]
+struct ConfirmDone {
+    task: TaskDto,
+}
+pub async fn get_confirm_done(
+    Path(id): Path<Uuid>,
+    task_service: State<TaskService>,
+) -> Result<impl IntoResponse, ApiError> {
+    let task = task_service
+        .get_task(id)
+        .await
+        .map_err(|err| ApiError::BadRequest {
+            message: err.to_string(),
+        })?;
+
+    let templ = ConfirmDone::new(task);
+
+    Ok(HtmlTemplate(templ))
+}
+
+#[derive(Debug, Clone, Template, Constructor)]
+#[template(path = "task.html", block = "content")]
+struct TaskListUpdate {
+    tasks: Vec<TaskDto>,
+}
 pub async fn post_mark_task_down(
     Path(id): Path<Uuid>,
     task_service: State<TaskService>,
@@ -68,5 +95,12 @@ pub async fn post_mark_task_down(
             message: err.to_string(),
         })?;
 
-    Ok((StatusCode::OK, "Ok"))
+    let tasks = task_service.list().await.map_err(|err| {
+        info!("Error getting tasks: {:?}", err);
+        ApiError::InternalServerError
+    })?;
+
+    let templ = TaskListUpdate::new(tasks);
+
+    Ok(HtmlTemplate(templ))
 }
