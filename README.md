@@ -3,7 +3,6 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] add complete task action
 - [ ] add create task view
 - [ ] add single task view with annotations
 
@@ -24,3 +23,4 @@ a mobile first taskwarrior ui
 - [x] create sqlx task storage
   - [x] fix: utf decoding issue
   - [x] add tests suite
+- [x] add complete task action
