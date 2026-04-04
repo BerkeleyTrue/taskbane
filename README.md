@@ -3,6 +3,7 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
+- [ ] fix: mark done in detail view
 - [ ] add create task view
 
 ## Done
