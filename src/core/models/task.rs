@@ -5,6 +5,7 @@ use taskchampion::{
     chrono::{DateTime, Duration, Local, Utc},
     Status, Tag, Task,
 };
+use uuid::Uuid;
 
 // urgency coefficient
 const NEXT_TAG: f64 = 15.0;
@@ -34,6 +35,7 @@ pub enum TaskDueStatus {
 #[derive(Debug, Clone)]
 pub struct TaskDto {
     pub id: usize,
+    pub uuid: Uuid,
     pub status: Status,
     pub description: String,
     pub due: Option<String>,
@@ -50,58 +52,54 @@ pub struct TaskDto {
 }
 
 impl TaskDto {
-    pub fn from(id: usize, value: Task, deps: Vec<usize>) -> Self {
+    pub fn from(id: usize, task: Task, deps: Vec<usize>) -> Self {
         let next_urg = Tag::from_str("next")
-            .map(|tag| if value.has_tag(&tag) { NEXT_TAG } else { 0. })
+            .map(|tag| if task.has_tag(&tag) { NEXT_TAG } else { 0. })
             .unwrap_or(0.);
         let fi_urg = Tag::from_str("fi")
-            .map(|tag| if value.has_tag(&tag) { TAG_FI } else { 0. })
+            .map(|tag| if task.has_tag(&tag) { TAG_FI } else { 0. })
             .unwrap_or(0.);
 
-        let due_urg = value.get_due().map(Self::due_urgency).unwrap_or_default();
-        let due_status = value
+        let due_urg = task.get_due().map(Self::due_urgency).unwrap_or_default();
+        let due_status = task
             .get_due()
             .map(Self::due_status)
             .unwrap_or(TaskDueStatus::Not);
-        let due = value.get_due().map(Self::due);
-        let blocking_urg = if value.is_blocking() {
+        let due = task.get_due().map(Self::due);
+        let blocking_urg = if task.is_blocking() {
             BLOCKING_OTHERS
         } else {
             0.
         };
-        let pri_urg = match value.get_priority() {
+        let pri_urg = match task.get_priority() {
             "h" => PRIORITY_HIGH,
             "m" => PRIORITY_MEDIUM,
             "l" => PRIORITY_LOW,
             _ => 0.,
         };
-        let act_urg = if value.is_active() {
-            ACTIVE_STARTED
-        } else {
-            0.
-        };
+        let act_urg = if task.is_active() { ACTIVE_STARTED } else { 0. };
 
-        let age_urg = value
+        let age_urg = task
             .get_entry()
             .map(|age| (Utc::now() - age).num_days().clamp(0, 365) as f64)
             .map(|age_days| (age_days / 365.0) * TASK_AGE)
             .unwrap_or_default();
 
-        let proj_urg = value
+        let proj_urg = task
             .get_user_defined_attribute("project")
             .map(|_| PROJECT_ASSIGNED)
             .unwrap_or_default();
-        let wait_urg = if value.is_waiting() { WAITING } else { 0. };
-        let block_urg = if value.is_blocked() { BLOCKED } else { 0. };
+        let wait_urg = if task.is_waiting() { WAITING } else { 0. };
+        let block_urg = if task.is_blocked() { BLOCKED } else { 0. };
 
-        let user_tags: Vec<_> = value.get_tags().filter(|tag| tag.is_user()).collect();
+        let user_tags: Vec<_> = task.get_tags().filter(|tag| tag.is_user()).collect();
         let tags_urg = match user_tags.len() {
             0 => 0.0,
             1 => 0.8,
             2 => 0.9,
             _ => 1.0,
         } * TAGS_COUNT;
-        let annote_urg = match value.get_annotations().collect::<Vec<_>>().len() {
+        let annote_urg = match task.get_annotations().collect::<Vec<_>>().len() {
             0 => 0.0,
             1 => 0.5,
             2 => 0.7,
@@ -110,11 +108,12 @@ impl TaskDto {
 
         Self {
             id,
-            status: value.get_status(),
-            description: value.get_description().to_owned(),
-            priority: value.get_priority().to_owned(),
-            is_blocked: value.is_blocked(),
-            is_blocking: value.is_blocking(),
+            uuid: task.get_uuid(),
+            status: task.get_status(),
+            description: task.get_description().to_owned(),
+            priority: task.get_priority().to_owned(),
+            is_blocked: task.is_blocked(),
+            is_blocking: task.is_blocking(),
             tags: user_tags.iter().join(" "),
             deps: deps.iter().join(" "),
             due,

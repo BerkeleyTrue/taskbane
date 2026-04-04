@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use derive_more::Constructor;
 use itertools::Itertools;
 use taskchampion::Task;
@@ -14,6 +14,18 @@ pub struct TaskService {
 }
 
 impl TaskService {
+    pub async fn get_task(&self, uuid: Uuid) -> Result<TaskDto> {
+        let task = self
+            .repo
+            .get_task(uuid)
+            .await?
+            .ok_or(anyhow!("No task found for uuid"))?;
+
+        let deps = task.get_dependencies().collect::<Vec<Uuid>>();
+        let (id, deps) = self.repo.get_task_meta(task.get_uuid(), deps).await?;
+
+        Ok(TaskDto::from(id, task, deps))
+    }
     pub async fn list(&self) -> Result<Vec<TaskDto>> {
         let tasks = self
             .repo
