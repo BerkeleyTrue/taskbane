@@ -3,9 +3,9 @@ const isOpeningClass = 'modal-is-opening';
 const isClosingClass = 'modal-is-closing';
 const scrollbarWidthCssVar = '--pico-scrollbar-width';
 const animationDuration = 400; // ms
-let visibleModal = null;
+var visibleModal = null;
 
-const logger = (log) => {
+var logger = (log) => {
   console.log("modal: " + log);
 };
 
