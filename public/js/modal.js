@@ -1,14 +1,15 @@
-const isOpenClass = 'modal-is-open';
-const isOpeningClass = 'modal-is-opening';
-const isClosingClass = 'modal-is-closing';
-const scrollbarWidthCssVar = '--pico-scrollbar-width';
-const animationDuration = 400; // ms
+var isOpenClass = 'modal-is-open';
+var isOpeningClass = 'modal-is-opening';
+var isClosingClass = 'modal-is-closing';
+var scrollbarWidthCssVar = '--pico-scrollbar-width';
+var animationDuration = 400; // ms
 var visibleModal = null;
 
 var logger = (log) => {
-  console.log("modal: " + log);
+  console.log('modal: ' + log);
 };
 
+logger("script loading");
 function toggleModal(event) {
   event.preventDefault();
   const modal = document.getElementById(event.currentTarget.dataset.target);
@@ -33,13 +34,30 @@ function openModal(modal) {
 function closeModal(modal) {
   visibleModal = null;
   const { documentElement: html } = document;
+  logger("transition");
   html.classList.add(isClosingClass);
   setTimeout(() => {
+    logger("removing classes");
     html.classList.remove(isClosingClass, isOpenClass);
     html.style.removeProperty(scrollbarWidthCssVar);
     modal.close();
   }, animationDuration);
 }
+
+document.addEventListener('htmx:beforeSwap', function(event) {
+  if (!visibleModal) return;
+
+  event.detail.shouldSwap = false;
+
+  const response = event.detail.serverResponse;
+  const target = event.detail.target;
+
+  closeModal(visibleModal);
+
+  setTimeout(() => {
+    htmx.swap(target, response, { swapStyle: 'outerHTML' });
+  }, animationDuration);
+});
 
 // Close with a click outside
 document.addEventListener('click', (event) => {
