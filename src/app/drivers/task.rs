@@ -1,8 +1,9 @@
 use askama::Template;
 use axum::{
     extract::{Path, State},
+    http::{HeaderMap, HeaderName, HeaderValue},
     middleware,
-    response::{IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect},
     routing, Router,
 };
 use derive_more::Constructor;
@@ -13,6 +14,7 @@ use uuid::Uuid;
 use crate::{
     core::{models::task::TaskDto, services::TaskService},
     infra::{
+        alerts::{Alert, AlertLevel},
         askama::{Globals, HtmlTemplate},
         auth::{unauth_middleware, SessionAuthState},
         error::{ApiError, AppError},
@@ -33,7 +35,7 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
         .with_state(task_service)
 }
 
-#[derive(Debug, Clone, Template)]
+#[derive(Debug, Clone, Template, Constructor)]
 #[template(path = "task.html")]
 struct TaskListPage {
     is_authed: bool,
@@ -51,11 +53,12 @@ pub async fn get_tasks(
         AppError::InternalServerError
     })?;
 
-    let templ = TaskListPage {
-        is_authed: auth_state.is_authed(),
+    let templ = TaskListPage::new(
+        auth_state.is_authed(),
         tasks,
-        globals: Globals::fetch(&session).await,
-    };
+        Globals::fetch(&session).await,
+    );
+
     Ok(HtmlTemplate(templ))
 }
 
@@ -104,12 +107,8 @@ pub async fn get_confirm_done(
     Ok(HtmlTemplate(templ))
 }
 
-#[derive(Debug, Clone, Template, Constructor)]
-#[template(path = "task.html", block = "content")]
-struct TaskListUpdate {
-    tasks: Vec<TaskDto>,
-}
 pub async fn post_mark_task_down(
+    session: Session,
     Path(id): Path<Uuid>,
     task_service: State<TaskService>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -124,8 +123,22 @@ pub async fn post_mark_task_down(
         info!("Error getting tasks: {:?}", err);
         ApiError::InternalServerError
     })?;
+    let alert = Alert::new(AlertLevel::Success, "Task completed!".to_owned());
 
-    let templ = TaskListUpdate::new(tasks);
+    let globals = Globals::fetch(&session).await.push_alert(alert);
 
-    Ok(HtmlTemplate(templ))
+    let tasks_page = TaskListPage::new(true, tasks, globals)
+        .render()
+        .map_err(|err| {
+            info!("Error rendering alert: {err:?}");
+            ApiError::InternalServerError
+        })?;
+
+    Ok((
+        [(
+            HeaderName::from_static("hx-replace-url"),
+            HeaderValue::from_static("/task"),
+        )],
+        Html(tasks_page),
+    ))
 }

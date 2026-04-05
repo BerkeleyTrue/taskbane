@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::extract::State;
-use axum::http::HeaderValue;
+use axum::http::{HeaderName, HeaderValue};
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::{middleware, Form, Router};
 use axum::{
@@ -432,7 +432,7 @@ async fn post_authorize_user(
 
     Ok((
         [(
-            axum::http::header::HeaderName::from_static("hx-redirect"),
+            HeaderName::from_static("hx-redirect"),
             HeaderValue::from_static("/task"),
         )],
         "",

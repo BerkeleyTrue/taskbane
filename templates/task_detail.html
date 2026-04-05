@@ -107,11 +107,13 @@
       </div>
 
       <footer>
-        <a
-          role="button"
-          class="contrast outline"
-          hx-get="/task/{{ task.id }}/done"
-        >
+          <button
+            class="contrast outline"
+            hx-get="/task/{{ task.uuid }}/confirm-done"
+            hx-target="#modal-task_done"
+            hx-swap="outerHTML"
+            hx-on::after-request="openModal(document.getElementById('modal-task_done'))"
+          >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -129,8 +131,10 @@
             />
             <path d="m9 11 3 3L22 4" />
           </svg>
-        </a>
+        </button>
       </footer>
     </article>
   </section>
+
+  <dialog id="modal-task_done"></dialog>
 {% endblock %}

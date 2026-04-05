@@ -22,9 +22,8 @@
       </button>
       <button
         hx-post="/task/{{ task.uuid }}/done"
-        hx-target="#task-list"
+        hx-target="body"
         hx-swap="outerHTML"
-        hx-on::after-request="toggleModal(event)"
         autofocus
         data-target="modal-task_done"
       >

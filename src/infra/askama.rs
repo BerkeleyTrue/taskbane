@@ -5,7 +5,7 @@ use axum::{
 };
 use tower_sessions::Session;
 
-use crate::infra::alerts::{flush_alert, Alerts};
+use crate::infra::alerts::{flush_alert, Alert, Alerts};
 
 pub struct HtmlTemplate<T>(pub T);
 
@@ -35,5 +35,10 @@ impl Globals {
         Self {
             alerts: flush_alert(session).await,
         }
+    }
+
+    pub fn push_alert(mut self, alert: Alert) -> Self {
+        self.alerts.push(alert);
+        self
     }
 }

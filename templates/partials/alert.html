@@ -27,6 +27,11 @@
   <script>
     (function () {
       const el = document.currentScript.closest(".alert");
+
+      if (!el) {
+        return;
+      }
+
       if (!el.classList.contains("alert-error")) {
         setTimeout(() => {
           el.classList.add("dismissing");
