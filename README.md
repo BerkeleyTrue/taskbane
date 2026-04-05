@@ -3,7 +3,6 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] fix: mark done in detail view
 - [ ] add create task view
 
 ## Done
@@ -25,3 +24,4 @@ a mobile first taskwarrior ui
   - [x] fix: utf decoding issue
   - [x] add tests suite
 - [x] add complete task action
+- [x] fix: mark done in detail view
