@@ -1,7 +1,7 @@
 use askama::Template;
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, HeaderName, HeaderValue},
+    http::{HeaderName, HeaderValue},
     middleware,
     response::{Html, IntoResponse, Redirect},
     routing, Router,

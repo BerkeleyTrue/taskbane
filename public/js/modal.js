@@ -52,10 +52,15 @@ document.addEventListener('htmx:beforeSwap', function(event) {
   const response = event.detail.serverResponse;
   const target = event.detail.target;
 
+  const replaceUrl = event.detail.xhr.getResponseHeader('HX-Replace-Url');
+
   closeModal(visibleModal);
 
   setTimeout(() => {
     htmx.swap(target, response, { swapStyle: 'outerHTML' });
+    if (replaceUrl) {
+      history.replaceState(null, '', replaceUrl);
+    }
   }, animationDuration);
 });
 
