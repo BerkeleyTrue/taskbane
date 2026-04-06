@@ -24,6 +24,8 @@ use crate::{
 pub fn task_routes(task_service: TaskService) -> axum::Router {
     Router::new()
         .route("/task", routing::get(get_tasks))
+        .route("/task/new", routing::get(get_create_task))
+        .route("/task/new", routing::post(post_create_task))
         .route(
             "/tasks",
             routing::get(async || Redirect::permanent("/task")),
@@ -60,6 +62,23 @@ pub async fn get_tasks(
     );
 
     Ok(HtmlTemplate(templ))
+}
+
+#[derive(Debug, Clone, Template, Constructor)]
+#[template(path = "task_create.html")]
+struct CreateTaskPage {
+    is_authed: bool,
+    globals: Globals,
+}
+
+pub async fn get_create_task(session: Session) -> impl IntoResponse {
+    let create_page = CreateTaskPage::new(true, Globals::fetch(&session).await);
+
+    HtmlTemplate(create_page)
+}
+
+pub async fn post_create_task() -> ApiError {
+    ApiError::InternalServerError
 }
 
 #[derive(Debug, Clone, Template, Constructor)]

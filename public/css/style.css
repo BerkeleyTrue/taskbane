@@ -270,6 +270,10 @@ main > article {
   color: var(--ctp-base);
 }
 
+#back-button {
+  margin-bottom: 8px;
+}
+
 #task-card header,
 #task-card footer,
 #task-card #task-meta {
