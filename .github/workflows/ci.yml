@@ -8,30 +8,12 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DATABASE_URL: sqlite://./data/taskbane.db
 
 jobs:
-  build:
+  prepare:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      SQLX_OFFLINE: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build
-        run: cargo build
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: sqlite://./data/taskbane.db
     steps:
       - uses: actions/checkout@v4
 
@@ -50,11 +32,34 @@ jobs:
           touch data/taskbane.db
           cargo sqlx migrate run
 
+      - name: Build
+        run: cargo build
+
+  test:
+    name: Test
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Create database and run migrations
+        run: |
+          mkdir -p data
+          touch data/taskbane.db
+          cargo sqlx migrate run
+
       - name: Run tests
         run: cargo test
 
   clippy:
     name: Clippy
+    needs: prepare
     runs-on: ubuntu-latest
     env:
       SQLX_OFFLINE: true
