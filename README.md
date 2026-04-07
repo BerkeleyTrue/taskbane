@@ -4,6 +4,12 @@ a mobile first taskwarrior ui
 ## TODO:
 
 - [ ] add create task view
+  - [x] parse dates 
+  - [ ] add deps typeahead
+  - [ ] post endpoint
+  - [ ] redirect on success
+- [ ] loading indicator
+- [ ] catch all error handler
 
 ## Done
 
