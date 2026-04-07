@@ -71,10 +71,33 @@ pub async fn get_tasks(
 struct CreateTaskPage {
     is_authed: bool,
     globals: Globals,
+    tasks_json: String,
 }
 
-pub async fn get_create_task(session: Session) -> impl IntoResponse {
-    let create_page = CreateTaskPage::new(true, Globals::fetch(&session).await);
+pub async fn get_create_task(
+    session: Session,
+    task_service: State<TaskService>,
+) -> impl IntoResponse {
+    #[derive(serde::Serialize, Constructor)]
+    struct TaskSearchDto {
+        id: usize,
+        uuid: Uuid,
+        description: String,
+    }
+    let tasks_json = task_service
+        .list()
+        .await
+        .map(|tasks| {
+            tasks
+                .iter()
+                .map(|task| TaskSearchDto::new(task.id, task.uuid, task.description.clone()))
+                .collect::<Vec<_>>()
+        })
+        .and_then(|tasks| serde_json::to_string(&tasks).map_err(anyhow::Error::from))
+        .inspect_err(|err| info!("err serialize tasks {err:?}"))
+        .unwrap_or_default();
+
+    let create_page = CreateTaskPage::new(true, Globals::fetch(&session).await, tasks_json);
 
     HtmlTemplate(create_page)
 }
