@@ -32,7 +32,7 @@
         <h2>Create Task</h2>
       </header>
 
-      <form hx-post="/task" hx-target="body" hx-push-url="true">
+      <form hx-post="/task" hx-target="body">
         <label for="description">description</label>
         <input
           type="text"
@@ -46,15 +46,22 @@
         <input type="text" id="tags" name="tags" placeholder="home fi" />
 
         <label for="deps">dep:</label>
-        <input
-          type="text"
-          id="deps"
-          name="deps"
-          placeholder="1 2 3 5 8"
-        />
+        <input type="text" id="deps" name="deps" placeholder="1 2 3 5 8" />
 
         <label for="due">due:</label>
-        <input type="date" id="due" name="due" />
+        <input
+          id="due"
+          name="due"
+          type="text"
+          hx-get="/task/date/parse"
+          hx-trigger="keyup[this.value.length > 2] changed delay:250ms"
+          hx-target="#due-helper"
+          hx-target-400="#due-helper"
+          hx-swap="outerHTML"
+          hx-on:htmx:after-request="this.setAttribute('aria-invalid', event.detail.xhr.status != 400 ? 'false' : 'true')"
+          aria-describedby="due-helper"
+        />
+        <small id="due-helper"></small>
 
         <label for="priority">Priority</label>
         <select id="priority" name="priority">

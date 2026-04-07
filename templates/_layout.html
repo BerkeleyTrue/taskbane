@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
   </head>
-  <body>
+  <body hx-ext=response-targets>
     {% include "partials/alerts.html" %}
     {% include "partials/navbar.html" %}
 
@@ -22,6 +22,7 @@
     </footer>
     <script src="/public/js/livereload.js"></script>
     <script src="/public/js/htmx.js"></script>
+    <script src="/public/js/htmx-response-targets.js"></script>
     <script src="/public/js/modal.js"></script>
     {% block scripts %}{% endblock %}
   </body>

@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use chrono::{Local, NaiveDateTime};
 use derive_more::Constructor;
 use itertools::Itertools;
 use taskchampion::Task;
 use uuid::Uuid;
 
-use crate::core::{models::task::TaskDto, ports::TaskRepository};
+use crate::{
+    core::{models::task::TaskDto, ports::TaskRepository},
+    infra::datetime::parse_date,
+};
 
 #[derive(Constructor, Clone)]
 pub struct TaskService {
@@ -46,5 +50,9 @@ impl TaskService {
 
     pub async fn mark_task_done(&self, uuid: Uuid) -> Result<()> {
         self.repo.mark_task_done(uuid).await
+    }
+
+    pub fn parse_datetime(&self, due: &str) -> Result<NaiveDateTime> {
+        parse_date(due, Local::now().naive_local()).ok_or_else(|| anyhow!("Could not parse"))
     }
 }

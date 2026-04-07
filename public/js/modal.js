@@ -9,7 +9,6 @@ var logger = (log) => {
   console.log('modal: ' + log);
 };
 
-logger("script loading");
 function toggleModal(event) {
   event.preventDefault();
   const modal = document.getElementById(event.currentTarget.dataset.target);
@@ -34,10 +33,8 @@ function openModal(modal) {
 function closeModal(modal) {
   visibleModal = null;
   const { documentElement: html } = document;
-  logger("transition");
   html.classList.add(isClosingClass);
   setTimeout(() => {
-    logger("removing classes");
     html.classList.remove(isClosingClass, isOpenClass);
     html.style.removeProperty(scrollbarWidthCssVar);
     modal.close();

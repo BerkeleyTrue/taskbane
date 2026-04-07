@@ -1,12 +1,13 @@
 use askama::Template;
 use axum::{
-    extract::{Path, State},
-    http::{HeaderName, HeaderValue},
+    extract::{Path, Query, State},
+    http::{HeaderName, HeaderValue, StatusCode},
     middleware,
     response::{Html, IntoResponse, Redirect},
     routing, Router,
 };
 use derive_more::Constructor;
+use serde::Deserialize;
 use tower_sessions::Session;
 use tracing::info;
 use uuid::Uuid;
@@ -33,6 +34,7 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
         .route("/task/{id}", routing::get(get_task))
         .route("/task/{id}/confirm-done", routing::get(get_confirm_done))
         .route("/task/{id}/done", routing::post(post_mark_task_down))
+        .route("/task/date/parse", routing::get(get_datetime))
         .layer(middleware::from_fn(unauth_middleware))
         .with_state(task_service)
 }
@@ -160,4 +162,31 @@ pub async fn post_mark_task_down(
         )],
         Html(tasks_page),
     ))
+}
+
+#[derive(Debug, Template, Constructor)]
+#[template(source = "<small id=due-helper>{{ message }}</small>", ext = "html")]
+struct CreateHelperText {
+    message: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DatetimeQuery {
+    due: String,
+}
+
+pub async fn get_datetime(
+    query: Query<DatetimeQuery>,
+    task_service: State<TaskService>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    task_service
+        .parse_datetime(&query.due)
+        .map(|due| due.format("%m-%d-%Y @ %H:%M:%S").to_string())
+        .map(|due| HtmlTemplate(CreateHelperText::new(due)))
+        .map_err(|err| {
+            (
+                StatusCode::BAD_REQUEST,
+                HtmlTemplate(CreateHelperText::new(err.to_string())),
+            )
+        })
 }
