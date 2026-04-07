@@ -32,6 +32,15 @@ jobs:
           touch data/taskbane.db
           cargo sqlx migrate run
 
+      - name: Generate sqlx query cache
+        run: cargo sqlx prepare
+
+      - name: Save sqlx cache
+        uses: actions/cache/save@v4
+        with:
+          path: .sqlx/
+          key: sqlx-${{ github.run_id }}
+
       - name: Build
         run: cargo build
 
@@ -73,6 +82,12 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
+
+      - name: Restore sqlx cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .sqlx/
+          key: sqlx-${{ github.run_id }}
 
       - name: Run Clippy
         run: cargo clippy -- -A dead_code
