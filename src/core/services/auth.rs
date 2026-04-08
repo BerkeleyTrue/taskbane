@@ -29,7 +29,19 @@ pub struct AuthService {
 }
 
 impl AuthService {
-    pub async fn create_registration(&self, user: User) -> Result<CreationChallengeResponse> {
+    pub async fn create_registration(
+        &self,
+        username: &str,
+    ) -> Result<(User, CreationChallengeResponse)> {
+        let user = self
+            .user_service
+            .register_user(username)
+            .await
+            .map_err(|err| {
+                info!("Error registering user: {:?}", err);
+                anyhow!("Username already exists")
+            })?;
+
         let (ccr, registration) = self.webauthn.start_passkey_registration(
             user.id(),
             user.username(),
@@ -40,7 +52,7 @@ impl AuthService {
         let user_auth = UserAuth::new(user.id(), registration);
 
         self.repo.add(user_auth).await?;
-        Ok(ccr)
+        Ok((user, ccr))
     }
 
     pub async fn validate_registration(

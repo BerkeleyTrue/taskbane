@@ -12,7 +12,7 @@ pub struct UserSqlRepo {
 
 #[async_trait]
 impl UserRepository for UserSqlRepo {
-    async fn add(&self, id: Uuid, username: String) -> Result<User> {
+    async fn add(&self, id: Uuid, username: &str) -> Result<User> {
         let existing_user = sqlx::query_as!(
             User,
             r#"SELECT id as `id:uuid::Uuid`, username FROM users WHERE id == ?"#,
@@ -26,7 +26,7 @@ impl UserRepository for UserSqlRepo {
             return Err(anyhow!("User with username already exists"));
         }
 
-        let user = User::new(id, username);
+        let user = User::new(id, username.to_owned());
         let username_copy = user.username();
         sqlx::query!(
             r#"
@@ -54,7 +54,7 @@ impl UserRepository for UserSqlRepo {
         .ok_or(anyhow!("User not found"))
     }
 
-    async fn get_by_username(&self, username: String) -> Option<User> {
+    async fn get_by_username(&self, username: &str) -> Option<User> {
         sqlx::query_as!(
             User,
             "SELECT id as `id:uuid::Uuid`, username FROM users WHERE username == ?",
@@ -68,7 +68,7 @@ impl UserRepository for UserSqlRepo {
         .unwrap_or(None)
     }
 
-    async fn update(&self, id: Uuid, username: String) -> Result<()> {
+    async fn update(&self, id: Uuid, username: &str) -> Result<()> {
         sqlx::query!(
             r#"
                 UPDATE users

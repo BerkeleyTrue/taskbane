@@ -127,23 +127,13 @@ struct RegistrationParams {
 
 async fn post_start_registration(
     session: Session,
-    State(AuthServices {
-        user_service,
-        auth_service,
-        ..
-    }): State<AuthServices>,
+    State(AuthServices { auth_service, .. }): State<AuthServices>,
     Json(payload): Json<RegistrationParams>,
 ) -> Result<Json<CreationChallengeResponse>, ApiError> {
     let username = payload.username;
-    let user = user_service.register_user(username).await.map_err(|err| {
-        info!("Error registering user: {:?}", err);
-        ApiError::BadRequest {
-            message: "Username already exists".to_string(),
-        }
-    })?;
 
-    let challenge = auth_service
-        .create_registration(user.clone())
+    let (user, challenge) = auth_service
+        .create_registration(&username)
         .await
         .map_err(|err| {
             info!("Error creating registration: {:?}", err);
@@ -353,7 +343,7 @@ async fn username_validation(
         }
     }
 
-    let is_available = state.user_service.is_username_available(username).await;
+    let is_available = state.user_service.is_username_available(&username).await;
     let form_error = FormError {
         id: id.clone(),
         error: match (is_available, is_free) {
