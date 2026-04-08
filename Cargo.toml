@@ -11,7 +11,7 @@ chrono = "0.4"
 askama = { version = "0.14.0", features = ["full"] }
 async-trait = "0.1.88"
 axum = "0.8.4"
-axum-extra = { version = "0.10.1", features = ["typed-header"] }
+axum-extra = { version = "0.10.1", features = ["typed-header", "form"] }
 axum-htmx = { version = "0.8.1", features = ["serde"]}
 derive_more = { version = "2.1.1", features = ["constructor", "deref", "deref_mut", "display", "from", "eq"]}
 dotenv = "0.15.0"

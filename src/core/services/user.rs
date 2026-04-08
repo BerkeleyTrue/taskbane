@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Constructor)]
 pub struct UserService {
-    repo: Arc<dyn ports::UserRepository>,
+    repo: Arc<dyn ports::user::UserRepository>,
 }
 
 impl UserService {

@@ -4,11 +4,16 @@ use anyhow::{anyhow, Result};
 use chrono::{Local, NaiveDateTime};
 use derive_more::Constructor;
 use itertools::Itertools;
-use taskchampion::Task;
+use taskchampion::{Tag, Task};
+use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    core::{models::task::TaskDto, ports::TaskRepository},
+    app::drivers::task::CreateTaskQuery,
+    core::{
+        models::task::TaskDto,
+        ports::task::{CreateTaskInput, TaskRepository},
+    },
     infra::datetime::parse_date,
 };
 
@@ -54,5 +59,29 @@ impl TaskService {
 
     pub fn parse_datetime(&self, due: &str) -> Result<NaiveDateTime> {
         parse_date(due, Local::now().naive_local()).ok_or_else(|| anyhow!("Could not parse"))
+    }
+
+    pub async fn create_task(&self, input: CreateTaskInput) -> Result<usize> {
+        self.repo.create_task(input).await
+    }
+}
+
+impl From<CreateTaskQuery> for CreateTaskInput {
+    fn from(value: CreateTaskQuery) -> Self {
+        let now = Local::now().naive_local();
+        let due = value
+            .due
+            .and_then(move |due| parse_date(&due, now))
+            .map(|date| date.and_utc());
+
+        let tags = value
+            .tags
+            .into_iter()
+            .map(|tag| Tag::try_from(&tag))
+            .collect::<Result<Vec<_>>>()
+            .inspect_err(|err| info!("Error converting tags: {err:?}"))
+            .unwrap_or_default();
+
+        Self::new(value.description, value.priority, value.deps, tags, due)
     }
 }

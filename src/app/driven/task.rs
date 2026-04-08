@@ -6,7 +6,10 @@ use derive_more::Constructor;
 use taskchampion::{storage::Storage, Operations, Status, Task};
 use uuid::Uuid;
 
-use crate::{core::ports::TaskRepository, infra::task::ArcRep};
+use crate::{
+    core::ports::task::{CreateTaskInput, TaskRepository},
+    infra::task::ArcRep,
+};
 
 #[derive(Constructor, Clone)]
 pub struct TaskRepo<S: Storage + Sync> {
@@ -73,6 +76,34 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
         rep.commit_operations(ops).await?;
 
         Ok(())
+    }
+
+    async fn create_task(&self, input: CreateTaskInput) -> Result<usize> {
+        let mut rep = self.replica.write().await;
+        let mut ops = Operations::new();
+        let uuid = Uuid::new_v4();
+        let mut task = rep.create_task(uuid, &mut ops).await?;
+
+        task.set_status(Status::Pending, &mut ops)?;
+        task.set_due(input.due, &mut ops)?;
+        task.set_description(input.description, &mut ops)?;
+        task.set_priority(input.priority, &mut ops)?;
+
+        for dep in input.deps.into_iter() {
+            task.add_dependency(dep, &mut ops)?;
+        }
+
+        for tag in input.tags.iter() {
+            task.add_tag(tag, &mut ops)?;
+        }
+
+        rep.commit_operations(ops).await?;
+
+        let ws = rep.working_set().await?;
+
+        let id = ws.by_uuid(uuid).unwrap_or_default();
+
+        Ok(id)
     }
 }
 

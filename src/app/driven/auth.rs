@@ -10,7 +10,7 @@ use webauthn_rs::prelude::{
 
 use crate::core::{
     models::user_auth::{UserAuth, UserAuthorizedState},
-    ports::AuthRepository,
+    ports::auth::AuthRepository,
 };
 
 pub struct AuthSqlRepo {

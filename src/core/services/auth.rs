@@ -17,7 +17,7 @@ use crate::core::{
         user::User,
         user_auth::{UserAuth, UserAuthorizedState},
     },
-    ports::AuthRepository,
+    ports::auth::AuthRepository,
     services::UserService,
 };
 

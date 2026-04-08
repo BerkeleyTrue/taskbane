@@ -13,9 +13,9 @@ pub use task::TaskService;
 pub use user::UserService;
 
 pub struct CreateServiceParams {
-    pub user_repo: Arc<dyn ports::UserRepository>,
-    pub auth_repo: Arc<dyn ports::AuthRepository>,
-    pub task_repo: Arc<dyn ports::TaskRepository>,
+    pub user_repo: Arc<dyn ports::user::UserRepository>,
+    pub auth_repo: Arc<dyn ports::auth::AuthRepository>,
+    pub task_repo: Arc<dyn ports::task::TaskRepository>,
     pub webauthn: Arc<Webauthn>,
 }
 

@@ -6,6 +6,7 @@ use axum::{
     response::{Html, IntoResponse, Redirect},
     routing, Router,
 };
+use axum_extra::extract::Form;
 use derive_more::Constructor;
 use serde::Deserialize;
 use tower_sessions::Session;
@@ -102,8 +103,52 @@ pub async fn get_create_task(
     HtmlTemplate(create_page)
 }
 
-pub async fn post_create_task() -> ApiError {
-    ApiError::InternalServerError
+#[derive(Deserialize)]
+pub struct CreateTaskQuery {
+    pub description: String,
+    pub priority: String,
+    #[serde(default)]
+    pub deps: Vec<Uuid>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    pub due: Option<String>,
+}
+
+pub async fn post_create_task(
+    session: Session,
+    task_service: State<TaskService>,
+    query: Form<CreateTaskQuery>,
+) -> Result<impl IntoResponse, ApiError> {
+    let id = task_service
+        .create_task(query.0.into())
+        .await
+        .map_err(|err| ApiError::BadRequest {
+            message: err.to_string(),
+        })?;
+
+    let tasks = task_service.list().await.map_err(|err| {
+        info!("Error getting tasks: {:?}", err);
+        ApiError::InternalServerError
+    })?;
+
+    let alert = Alert::new(AlertLevel::Success, format!("Task created with id {id}!"));
+
+    let globals = Globals::fetch(&session).await.push_alert(alert);
+
+    let tasks_page = TaskListPage::new(true, tasks, globals)
+        .render()
+        .map_err(|err| {
+            info!("Error rendering alert: {err:?}");
+            ApiError::InternalServerError
+        })?;
+
+    Ok((
+        [(
+            HeaderName::from_static("hx-replace-url"),
+            HeaderValue::from_static("/task"),
+        )],
+        Html(tasks_page),
+    ))
 }
 
 #[derive(Debug, Clone, Template, Constructor)]

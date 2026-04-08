@@ -13,9 +13,9 @@ pub fn create_driven<S: Storage + Sync + 'static>(
     pool: &SqlitePool,
     task_storage: ArcRep<S>,
 ) -> (
-    Arc<dyn ports::UserRepository>,
-    Arc<dyn ports::AuthRepository>,
-    Arc<dyn ports::TaskRepository>,
+    Arc<dyn ports::user::UserRepository>,
+    Arc<dyn ports::auth::AuthRepository>,
+    Arc<dyn ports::task::TaskRepository>,
 ) {
     (
         user::create_user_repo(pool),

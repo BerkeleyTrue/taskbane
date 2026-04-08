@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use chrono::NaiveDateTime;
 use itertools::Itertools;
 use taskchampion::{
     chrono::{DateTime, Duration, Local, Utc},
