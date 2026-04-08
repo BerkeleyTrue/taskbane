@@ -3,9 +3,6 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] loading indicator
-- [ ] catch all error handler
-
 ## Done
 
 - [x] add single task view with annotations
@@ -31,3 +28,5 @@ a mobile first taskwarrior ui
   - [x] add deps typeahead
   - [x] post endpoint
   - [x] redirect on success
+- [x] loading indicator
+- [x] catch all error handler
