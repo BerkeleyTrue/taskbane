@@ -19,7 +19,7 @@ use crate::{
     infra::{
         alerts::{Alert, AlertLevel},
         askama::{Globals, HtmlTemplate},
-        auth::{unauth_middleware, SessionAuthState},
+        auth::{redirect_unauthorized_users, SessionAuthState},
         error::{ApiError, AppError},
     },
 };
@@ -38,7 +38,7 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
         .route("/task/{id}/done", routing::post(post_mark_task_down))
         .route("/task/date/parse", routing::get(get_datetime))
         .route("/task/annotate", routing::patch(patch_annotate))
-        .layer(middleware::from_fn(unauth_middleware))
+        .layer(middleware::from_fn(redirect_unauthorized_users))
         .with_state(task_service)
 }
 

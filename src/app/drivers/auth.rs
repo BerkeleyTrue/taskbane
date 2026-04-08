@@ -20,7 +20,10 @@ use crate::core::models::user_auth::UserAuthorizedState;
 use crate::core::services::{AuthService, TaskService, UserService};
 use crate::infra::alerts::{alert_success, map_err_to_alert};
 use crate::infra::askama::{Globals, HtmlTemplate};
-use crate::infra::auth::{authenticed_middleware, authorized_middleware, SessionAuthState};
+use crate::infra::auth::{
+    redirect_auth_users, redirect_authorized_users, redirect_unauthenticated_users,
+    SessionAuthState,
+};
 use crate::infra::error::{ApiError, AppError};
 
 #[derive(Clone)]
@@ -46,16 +49,23 @@ pub fn auth_routes<S>(
         .route("/auth/login", post(post_authenticate))
         .route("/auth/validate-login", post(post_validate_authen))
         .route("/auth/username_validation", get(username_validation))
-        // redirect authenticated users to task
-        .layer(middleware::from_fn(authenticed_middleware))
+        // redirect authorized users to task,
+        // authenticated users to validate against taskdb
+        .layer(middleware::from_fn(redirect_auth_users))
         .route("/logout", get(get_logout));
+
+    let authed_routes = Router::new()
+        .route("/add-passkey", get(get_add_passkey))
+        .layer(middleware::from_fn(redirect_unauthenticated_users));
 
     Router::new()
         // unauthorized routes
         .route("/authorize-user", get(get_validate_user))
         .route("/auth/authorize-user", post(post_authorize_user))
-        .layer(middleware::from_fn(authorized_middleware))
+        // redirect authorized users to tasks
+        .layer(middleware::from_fn(redirect_authorized_users))
         .merge(unauthen_routes)
+        .merge(authed_routes)
         .with_state(AuthServices {
             user_service,
             auth_service,
@@ -447,4 +457,18 @@ async fn get_logout(session: Session, session_auth: Option<SessionAuthState>) ->
         });
     }
     Redirect::temporary("/")
+}
+
+#[derive(Debug, Clone, Template)]
+#[template(path = "add-passkey.html")]
+struct AddPasskeyTemplate {
+    is_authed: bool,
+    globals: Globals,
+}
+async fn get_add_passkey() -> impl IntoResponse {
+    let template = AddPasskeyTemplate {
+        is_authed: true,
+        globals: Globals::default(),
+    };
+    HtmlTemplate(template)
 }

@@ -177,8 +177,9 @@ enum ResponseType {
     Text,
 }
 
-/// redirect unauth users, protecting routes
-pub async fn unauth_middleware(
+/// unauthorized users are redirected
+/// they must authorize against the taskdb
+pub async fn redirect_unauthorized_users(
     accept: Option<TypedHeader<Accept>>,
     auth_state: Option<SessionAuthState>,
     request: Request,
@@ -225,8 +226,10 @@ pub async fn unauth_middleware(
     }
 }
 
-/// redirect authenticated users
-pub async fn authenticed_middleware(
+/// redirect authenticated and authorized users
+/// if a user is not authorized, they must validate
+/// redirect authorized users to tasks
+pub async fn redirect_auth_users(
     auth_state: Option<SessionAuthState>,
     request: Request,
     next: Next,
@@ -246,7 +249,8 @@ pub async fn authenticed_middleware(
 }
 
 /// redirect authorized users
-pub async fn authorized_middleware(
+/// if a user is already authorized, they don't need to re-auth
+pub async fn redirect_authorized_users(
     auth_state: Option<SessionAuthState>,
     request: Request,
     next: Next,
@@ -257,6 +261,24 @@ pub async fn authorized_middleware(
             auth_state: AuthState::Authorized,
             ..
         }) => Redirect::temporary("/task").into_response(),
+        _ => next.run(request).await,
+    }
+}
+
+/// redirect unauthenticated users
+/// authorized or authenticated pass through
+pub async fn redirect_unauthenticated_users(
+    auth_state: Option<SessionAuthState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    info!("unauthorized auth state: {auth_state:?}");
+    match auth_state {
+        Some(SessionAuthState {
+            auth_state: AuthState::Not,
+            ..
+        })
+        | None => Redirect::temporary("/login").into_response(),
         _ => next.run(request).await,
     }
 }

@@ -1,0 +1,18 @@
+{# vim: set ft=jinja: #}
+{% extends "_layout.html" %}
+
+{% block title %}Add Passkey{% endblock %}
+
+{% block content %}
+  <article>
+    <form id="add-passkey-form" hx-on:submit="addPasskey(event);">
+      <p>Register a new passkey for your account.</p>
+      <button id="add-passkey-button" type="submit">Add Passkey</button>
+    </form>
+  </article>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/public/js/js-base64.js"></script>
+  <script src="/public/js/add-passkey.js"></script>
+{% endblock %}

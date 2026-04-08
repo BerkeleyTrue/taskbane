@@ -4,13 +4,14 @@ use tower_sessions::Session;
 
 use crate::infra::{
     askama::{Globals, HtmlTemplate},
-    auth::{authenticed_middleware, SessionAuthState},
+    auth::{redirect_auth_users, SessionAuthState},
 };
 
 pub fn home_routes() -> axum::Router {
     Router::new()
+        // anon home page
         .route("/", get(get_home))
-        .layer(middleware::from_fn(authenticed_middleware))
+        .layer(middleware::from_fn(redirect_auth_users))
 }
 
 #[derive(Debug, Clone, Template)]
