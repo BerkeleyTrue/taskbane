@@ -32,7 +32,11 @@
         <h2>Create Task</h2>
       </header>
 
-      <form hx-post="/task" hx-target="body">
+      <form 
+        hx-post="/task/new" 
+        hx-target="body"
+        hx-swap="outerHTML"
+      >
         <label for="description">description</label>
         <input
           type="text"
@@ -42,14 +46,58 @@
           autofocus
         />
 
-        <label for="tags">+tag</label>
-        <input type="text" id="tags" name="tags" placeholder="home fi" />
+        <div id="tags-widget">
+          <div id="tags-pills-container">
+            <label for="tags-input">+tag</label>
+            <div id="tags-pills"></div>
+          </div>
+
+          <input
+            type="text"
+            id="tags-input"
+            autocomplete="off"
+            placeholder="home, fi"
+          />
+
+          <template id="tag-pill-template">
+            <span class="dep-pill">
+              <span></span>
+              <button type="button" aria-label="Remove">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="24" 
+                  height="24" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="2" 
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-x-icon lucide-x">
+                    <path d="M18 6 6 18"/>
+                    <path d="m6 6 12 12"/>
+                </svg>
+              </button>
+            </span>
+          </template>
+        </div>
 
         <div id="deps-widget">
+
           <div id="deps-pills-container">
             <label for="deps-search">deps:</label>
             <div id="deps-pills"></div>
           </div>
+
+          <input
+            type="text"
+            id="deps-search"
+            autocomplete="off"
+            placeholder="search tasks..."
+          />
+
+          <ul id="deps-results" role="listbox"></ul>
+
           <template id="dep-pill-template">
             <span class="dep-pill">
               <span data-tooltip="" tabindex="0">
@@ -59,13 +107,6 @@
               </button>
             </span>
           </template>
-          <input
-            type="text"
-            id="deps-search"
-            autocomplete="off"
-            placeholder="search tasks..."
-          />
-          <ul id="deps-results" role="listbox"></ul>
         </div>
 
         <label for="due">due:</label>
@@ -119,4 +160,5 @@
 {% block scripts %}
 <script>window.__TASKS__ = {{ tasks_json|safe }};</script>
 <script src="/public/js/deps-select.js" defer></script>
+<script src="/public/js/tags-select.js" defer></script>
 {% endblock %}
