@@ -3,11 +3,6 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] add create task view
-  - [x] parse dates 
-  - [ ] add deps typeahead
-  - [ ] post endpoint
-  - [ ] redirect on success
 - [ ] loading indicator
 - [ ] catch all error handler
 
@@ -31,3 +26,8 @@ a mobile first taskwarrior ui
   - [x] add tests suite
 - [x] add complete task action
 - [x] fix: mark done in detail view
+- [x] add create task view
+  - [x] parse dates 
+  - [x] add deps typeahead
+  - [x] post endpoint
+  - [x] redirect on success
