@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use chrono::NaiveDateTime;
 use itertools::Itertools;
 use taskchampion::{
     chrono::{DateTime, Duration, Local, Utc},
@@ -101,7 +100,13 @@ impl TaskDto {
             2 => 0.9,
             _ => 1.0,
         } * TAGS_COUNT;
-        let annote_urg = match task.get_annotations().collect::<Vec<_>>().len() {
+
+        let annotations = task
+            .get_annotations()
+            .sorted_by(|x, y| y.entry.cmp(&x.entry))
+            .collect::<Vec<_>>();
+
+        let annote_urg = match annotations.len() {
             0 => 0.0,
             1 => 0.5,
             2 => 0.7,
@@ -118,7 +123,7 @@ impl TaskDto {
             is_blocking: task.is_blocking(),
             tags: user_tags.iter().join(" "),
             deps: deps.iter().join(" "),
-            annotations: task.get_annotations().collect(),
+            annotations,
             due,
             due_status,
             urgency: next_urg

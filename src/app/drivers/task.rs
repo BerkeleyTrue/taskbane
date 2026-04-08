@@ -3,12 +3,13 @@ use axum::{
     extract::{Path, Query, State},
     http::{HeaderName, HeaderValue, StatusCode},
     middleware,
-    response::{Html, IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect, Response},
     routing, Router,
 };
 use axum_extra::extract::Form;
 use derive_more::Constructor;
 use serde::Deserialize;
+use taskchampion::Annotation;
 use tower_sessions::Session;
 use tracing::info;
 use uuid::Uuid;
@@ -36,6 +37,7 @@ pub fn task_routes(task_service: TaskService) -> axum::Router {
         .route("/task/{id}/confirm-done", routing::get(get_confirm_done))
         .route("/task/{id}/done", routing::post(post_mark_task_down))
         .route("/task/date/parse", routing::get(get_datetime))
+        .route("/task/annotate", routing::patch(patch_annotate))
         .layer(middleware::from_fn(unauth_middleware))
         .with_state(task_service)
 }
@@ -257,4 +259,34 @@ pub async fn get_datetime(
                 HtmlTemplate(CreateHelperText::new(err.to_string())),
             )
         })
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AnnotateQuery {
+    uuid: Uuid,
+    description: String,
+}
+
+pub async fn patch_annotate(
+    task_service: State<TaskService>,
+    query: Form<AnnotateQuery>,
+) -> Result<impl IntoResponse, Response> {
+    let annotation = task_service
+        .annotate_task(query.uuid, &query.description)
+        .await
+        .map_err(|err| {
+            ApiError::BadRequest {
+                message: err.to_string(),
+            }
+            .into_response()
+        })?;
+
+    #[derive(Template, Constructor)]
+    #[template(path = "partials/annotation.html")]
+    struct AnnotateDetails {
+        annotation: Annotation,
+    }
+    let templ = AnnotateDetails::new(annotation);
+
+    Ok(HtmlTemplate(templ))
 }

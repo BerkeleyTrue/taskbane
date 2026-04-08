@@ -88,17 +88,6 @@
         <p>{{ task.description }}</p>
       </div>
 
-      {% if !task.annotations.is_empty() %}
-        <ul id="task-annotations">
-          {% for annotation in task.annotations %}
-            <li class="task-annotation">
-              <time>{{ annotation.entry }}</time>
-              <span>{{ annotation.description }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-
       <div id="task-deps-tags">
         {% if !task.tags.is_empty() %}
           <div id="task-tags">{{ task.tags }}</div>
@@ -139,4 +128,37 @@
   </section>
 
   <dialog id="modal-task_done"></dialog>
+
+  <section id="annotations-section">
+    <article>
+      <header>
+        <h2>Annotations</h2>
+      </header>
+      <div id="task-annotations">
+        {% for annotation in task.annotations %}
+          {% include "partials/annotation.html" %}
+        {% endfor %}
+      </div>
+      <footer>
+        <form
+          hx-patch="/task/annotate"
+          hx-target="#task-annotations"
+          hx-swap="afterbegin"
+          hx-on::after-request="this.reset()"
+        >
+          <input type="hidden" name="uuid" value="{{ task.uuid }}" />
+          <fieldset role="group">
+            <input
+              type="text"
+              name="description"
+              placeholder="Add annotation..."
+              required
+              minlength="3"
+            />
+            <button type="submit">Add</button>
+          </fieldset>
+        </form>
+      </footer>
+    </article>
+  </section>
 {% endblock %}

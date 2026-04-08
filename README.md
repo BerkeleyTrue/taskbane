@@ -3,6 +3,8 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
+- [ ] add secondary passkeys
+
 ## Done
 
 - [x] add single task view with annotations
@@ -30,3 +32,4 @@ a mobile first taskwarrior ui
   - [x] redirect on success
 - [x] loading indicator
 - [x] catch all error handler
+- [x] annotate task

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use derive_more::Constructor;
-use taskchampion::{storage::Storage, Operations, Status, Task};
+use taskchampion::{storage::Storage, Annotation, Operations, Status, Task};
 use uuid::Uuid;
 
 use crate::{
@@ -104,6 +104,18 @@ impl<S: Storage + Sync> TaskRepository for TaskRepo<S> {
         let id = ws.by_uuid(uuid).unwrap_or_default();
 
         Ok(id)
+    }
+
+    async fn annotate(&self, uuid: Uuid, annotation: Annotation) -> Result<()> {
+        let mut rep = self.replica.write().await;
+        let mut ops = Operations::new();
+        let mut task = rep.get_task(uuid).await?.ok_or(anyhow!("No task found"))?;
+
+        task.add_annotation(annotation, &mut ops)?;
+
+        rep.commit_operations(ops).await?;
+
+        Ok(())
     }
 }
 

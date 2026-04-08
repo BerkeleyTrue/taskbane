@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use derive_more::Constructor;
-use taskchampion::{Tag, Task};
+use taskchampion::{Annotation, Tag, Task};
 use uuid::Uuid;
 
 #[derive(Debug, Constructor)]
@@ -25,4 +25,5 @@ pub trait TaskRepository: Send + Sync {
     ) -> Result<Option<Task>>;
     async fn mark_task_done(&self, uuid: Uuid) -> Result<()>;
     async fn create_task(&self, input: CreateTaskInput) -> Result<usize>;
+    async fn annotate(&self, uuid: Uuid, annotation: Annotation) -> Result<()>;
 }

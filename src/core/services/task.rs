@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use chrono::{Local, NaiveDateTime};
 use derive_more::Constructor;
 use itertools::Itertools;
-use taskchampion::{Tag, Task};
+use taskchampion::{Annotation, Tag, Task};
 use tracing::info;
 use uuid::Uuid;
 
@@ -63,6 +63,17 @@ impl TaskService {
 
     pub async fn create_task(&self, input: CreateTaskInput) -> Result<usize> {
         self.repo.create_task(input).await
+    }
+
+    pub async fn annotate_task(&self, uuid: Uuid, description: &str) -> Result<Annotation> {
+        let annotation = Annotation {
+            entry: Local::now().to_utc(),
+            description: description.to_owned(),
+        };
+
+        self.repo.annotate(uuid, annotation.clone()).await?;
+
+        Ok(annotation)
     }
 }
 

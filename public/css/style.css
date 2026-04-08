@@ -456,3 +456,12 @@ main > article {
   font-weight: bold;
   margin-right: 0.4em;
 }
+
+/* task detail */
+#task-annotation {
+  display: flex;
+  flex-direction: column;
+}
+#task-annotation-desc {
+  font-size: 1.2rem;
+}
