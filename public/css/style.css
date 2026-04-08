@@ -130,6 +130,29 @@
   --pico-accordion-open-summary-color: var(--ctp-subtext0);
 }
 
+#loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--ctp-blue);
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+#loading-bar.active {
+  opacity: 1;
+  animation: loading-bar-progress 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-bar-progress {
+  0%   { width: 0; margin-left: 0; }
+  50%  { width: 60%; margin-left: 20%; }
+  100% { width: 0; margin-left: 100%; }
+}
+
 body {
   height: 100dvh;
   width: 100dvw;

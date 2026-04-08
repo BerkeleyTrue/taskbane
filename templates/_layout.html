@@ -10,6 +10,7 @@
     <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
   </head>
   <body hx-ext=response-targets>
+    <div id="loading-bar"></div>
     {% include "partials/alerts.html" %}
     {% include "partials/navbar.html" %}
 
@@ -24,6 +25,7 @@
     <script src="/public/js/htmx.js"></script>
     <script src="/public/js/htmx-response-targets.js"></script>
     <script src="/public/js/modal.js"></script>
+    <script src="/public/js/app.js"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>
