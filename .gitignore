@@ -33,3 +33,4 @@ node_modules/
 .env
 data*
 .pre-commit-config.yaml
+.sqlx
