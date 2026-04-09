@@ -3,7 +3,6 @@ a mobile first taskwarrior ui
 
 ## TODO:
 
-- [ ] add secondary passkeys
 
 ## Done
 
@@ -33,3 +32,4 @@ a mobile first taskwarrior ui
 - [x] loading indicator
 - [x] catch all error handler
 - [x] annotate task
+- [x] add secondary passkeys
