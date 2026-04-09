@@ -68,8 +68,15 @@ async function register(e) {
       return res;
     })
     .then((res) => {
-      if (res.redirected) {
-        window.location.href = res.url;
+      const hxRedirect = res.headers.get('hx-redirect');
+      if (hxRedirect) {
+        htmx.ajax('GET', hxRedirect, { target: 'body', swap: 'outerHTML' });
+        return;
+      }
+      if (!res.ok) {
+        return res.json().then((err) => {
+          throw new Error(err.message || 'Failed to validate registration');
+        });
       }
       return res;
     })

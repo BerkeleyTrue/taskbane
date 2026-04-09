@@ -234,7 +234,6 @@ pub async fn redirect_auth_users(
     request: Request,
     next: Next,
 ) -> Response {
-    info!("authenticated auth state: {auth_state:?}");
     match auth_state {
         Some(SessionAuthState {
             auth_state: AuthState::Authorized,
@@ -255,7 +254,6 @@ pub async fn redirect_authorized_users(
     request: Request,
     next: Next,
 ) -> Response {
-    info!("authorized auth state: {auth_state:?}");
     match auth_state {
         Some(SessionAuthState {
             auth_state: AuthState::Authorized,
@@ -272,7 +270,6 @@ pub async fn redirect_unauthenticated_users(
     request: Request,
     next: Next,
 ) -> Response {
-    info!("unauthorized auth state: {auth_state:?}");
     match auth_state {
         Some(SessionAuthState {
             auth_state: AuthState::Not,

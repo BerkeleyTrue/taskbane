@@ -160,18 +160,35 @@ async fn post_start_registration(
 }
 
 async fn post_validate_registration(
+    session: Session,
     session_auth: SessionAuthState,
     State(AuthServices { auth_service, .. }): State<AuthServices>,
     Json(cred): Json<RegisterPublicKeyCredential>,
-) -> Result<Redirect, ApiError> {
+) -> Result<impl IntoResponse, ApiError> {
     auth_service
         .validate_registration(session_auth.user_id(), &cred)
         .await
-        .or(Err(ApiError::BadRequest {
-            message: "Failed to validate credentials".to_string(),
-        }))?;
+        .map_err(|err| {
+            info!("Error registering user: {err:?}");
+            ApiError::BadRequest {
+                message: "Failed to validate credentials".to_string(),
+            }
+        })?;
 
-    Ok(Redirect::to("/login"))
+    alert_success("Success. Login to continue.", &session)
+        .await
+        .map_err(|err| {
+            info!("Err alerting: {err:?}");
+            ApiError::InternalServerError
+        })?;
+
+    Ok((
+        [(
+            HeaderName::from_static("hx-redirect"),
+            HeaderValue::from_static("/login"),
+        )],
+        "",
+    ))
 }
 
 #[derive(Debug, Clone, Template)]
@@ -180,10 +197,10 @@ struct LoginTemplate {
     is_authed: bool,
     globals: Globals,
 }
-async fn get_login() -> impl IntoResponse {
+async fn get_login(session: Session) -> impl IntoResponse {
     let template = LoginTemplate {
         is_authed: false,
-        globals: Globals::default(),
+        globals: Globals::fetch(&session).await,
     };
     HtmlTemplate(template)
 }
