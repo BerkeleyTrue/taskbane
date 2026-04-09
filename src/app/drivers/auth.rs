@@ -47,7 +47,7 @@ pub fn auth_routes<S>(
         )
         .route("/login", get(get_login))
         .route("/auth/login", post(post_authenticate))
-        .route("/auth/validate-login", post(post_validate_authen))
+        .route("/auth/validate-login", post(post_validate_authenticate))
         .route("/auth/username_validation", get(username_validation))
         // redirect authorized users to task,
         // authenticated users to validate against taskdb
@@ -56,6 +56,14 @@ pub fn auth_routes<S>(
 
     let authed_routes = Router::new()
         .route("/add-passkey", get(get_add_passkey))
+        .route(
+            "/auth/register-sec-passkey",
+            post(post_register_sec_passkey),
+        )
+        .route(
+            "/auth/validate-sec-passkey",
+            post(post_validate_sec_passkey),
+        )
         .layer(middleware::from_fn(redirect_unauthenticated_users));
 
     Router::new()
@@ -102,14 +110,15 @@ async fn get_register() -> impl IntoResponse {
 //                  │                     │                      │
 //                  │  3. Select Token    │                      │
 //             ─ ─ ─│◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                      │
-//   4. Vauth_service                     │                      │
+//   4. auth_service│                     │                      │
 //                  │  4. Yield PubKey    │                      │
-//            └ ─ ─▶│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶                      │
+//            └ ─ ─▶│─ ─ ─ ─ ─ ─ ─ ─ ─ ──▶│                      │
 //                  │                     │                      │
-//                  │                     │  5. Send Reg Opts    │
+//                  │                     │     5. Send Reg      │
+//                  │                     │        Opts          │
 //                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│─ ─ ─
 //                  │                     │                      │     │ 5. Verify
-//                  │                     │                      │         PubKey
+//                  │                     │                      │          PubKey
 //                  │                     │                      │◀─ ─ ┘
 //                  │                     │                      │─ ─ ─
 //                  │                     │                      │     │ 6. Persist
@@ -152,11 +161,7 @@ async fn post_start_registration(
 
 async fn post_validate_registration(
     session_auth: SessionAuthState,
-    State(AuthServices {
-        user_service: _user_state,
-        auth_service,
-        ..
-    }): State<AuthServices>,
+    State(AuthServices { auth_service, .. }): State<AuthServices>,
     Json(cred): Json<RegisterPublicKeyCredential>,
 ) -> Result<Redirect, ApiError> {
     auth_service
@@ -199,13 +204,13 @@ async fn get_login() -> impl IntoResponse {
 //                  │  3. Select Token    │                      │
 //             ─ ─ ─│◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                      │
 //  4. Verify │     │                     │                      │
-//                  │    4. Yield Sig     │                      │
+//            │     │  4. Yield Sig       │                      │
 //            └ ─ ─▶│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶                      │
-//                  │                     │    5. Send Auth      │
+//                  │                     │     5. Send Auth     │
 //                  │                     │        Opts          │
 //                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│─ ─ ─
 //                  │                     │                      │     │ 5. Verify
-//                  │                     │                      │          Sig
+//                  │                     │                      │     │    Sig
 //                  │                     │                      │◀─ ─ ┘
 //                  │                     │                      │
 //                  │                     │                      │
@@ -248,14 +253,10 @@ async fn post_authenticate(
     Ok(Json(rcr))
 }
 
-async fn post_validate_authen(
+async fn post_validate_authenticate(
     session: Session,
     session_auth: SessionAuthState,
-    State(AuthServices {
-        user_service: _user_service,
-        auth_service,
-        ..
-    }): State<AuthServices>,
+    State(AuthServices { auth_service, .. }): State<AuthServices>,
     Json(pkc): Json<PublicKeyCredential>,
 ) -> Result<impl IntoResponse, ApiError> {
     auth_service
@@ -314,7 +315,7 @@ struct FormError {
 }
 
 async fn username_validation(
-    State(state): State<AuthServices>,
+    State(AuthServices { user_service, .. }): State<AuthServices>,
     Form(UsernameValidationParams { username, is_free }): Form<UsernameValidationParams>,
 ) -> impl IntoResponse {
     let id = "username-error".to_string();
@@ -343,7 +344,7 @@ async fn username_validation(
         }
     }
 
-    let is_available = state.user_service.is_username_available(&username).await;
+    let is_available = user_service.is_username_available(&username).await;
     let form_error = FormError {
         id: id.clone(),
         error: match (is_available, is_free) {
@@ -455,10 +456,86 @@ struct AddPasskeyTemplate {
     is_authed: bool,
     globals: Globals,
 }
-async fn get_add_passkey() -> impl IntoResponse {
+async fn get_add_passkey(session: Session) -> impl IntoResponse {
     let template = AddPasskeyTemplate {
         is_authed: true,
-        globals: Globals::default(),
+        globals: Globals::fetch(&session).await,
     };
     HtmlTemplate(template)
+}
+
+//          ┌───────────────┐     ┌───────────────┐      ┌───────────────┐
+//          │ Authenticator │     │    Browser    │      │     Site      │
+//          └───────────────┘     └───────────────┘      └───────────────┘
+//                  │                     │                      │
+//                  │                     │  1. Start Add Key    │
+//                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│─ ─ ─
+//                  │                     │                      │     │ 2. Fetch existing passkeys
+//                  │                     │                      │     │ Start new registration
+//                  │                     │                      │◀─ ─ ┘
+//                  │                     │  3. Challenge w/     │
+//                  │                     │     Ex. Credentials  │
+//                  │                     │◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤
+//                  │                     │                      │
+//                  │  4. Select Token    │                      │
+//             ─ ─ ─│◀ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                      │
+//   5.Verify │     │                     │                      │
+//            │     │  5. Yield PubKey    │                      │
+//            └ ─ ─▶│─ ─ ─ ─ ─ ─ ─ ─ ─  ─▶│                      │
+//                  │                     │                      │
+//                  │                     │  6. Send PK Cred     │
+//                  │                     │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│─ ─ ─
+//                  │                     │                      │     │ 6. Verify
+//                  │                     │                      │       PubKey
+//                  │                     │                      │◀─ ─ ┘
+//                  │                     │                      │─ ─ ─
+//                  │                     │                      │     │ 7. Append
+//                  │                     │                      │       Credential
+//                  │                     │                      │◀─ ─ ┘
+//                  │                     │                      │
+//                  │                     │                      │
+async fn post_register_sec_passkey(
+    session_auth: SessionAuthState,
+    State(AuthServices { auth_service, .. }): State<AuthServices>,
+) -> Result<Json<CreationChallengeResponse>, ApiError> {
+    let user_id = session_auth.user_id();
+    let username = session_auth.username();
+
+    let challenge = auth_service
+        .start_sec_passkey_registration(user_id, username)
+        .await
+        .map_err(|err| {
+            info!("Error creating registration: {:?}", err);
+            ApiError::BadRequest {
+                message: "Failed to create registration".to_string(),
+            }
+        })?;
+
+    Ok(Json(challenge))
+}
+
+async fn post_validate_sec_passkey(
+    session: Session,
+    session_auth: SessionAuthState,
+    State(AuthServices { auth_service, .. }): State<AuthServices>,
+    Json(cred): Json<RegisterPublicKeyCredential>,
+) -> Result<Redirect, Response> {
+    let user_id = session_auth.user_id();
+
+    auth_service
+        .validate_sec_passkey(user_id, &cred)
+        .await
+        .map_err(|err| {
+            info!("Err validating sec passkey: {err:?}");
+            ApiError::BadRequest {
+                message: "Failed to validate credentials".to_string(),
+            }
+            .into_response()
+        })?;
+
+    alert_success("Successfully added second passkeys", &session)
+        .await
+        .map_err(map_err_to_alert)?;
+
+    Ok(Redirect::to("/"))
 }

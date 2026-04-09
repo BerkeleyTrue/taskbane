@@ -89,6 +89,51 @@ impl AuthService {
         Ok(())
     }
 
+    pub async fn start_sec_passkey_registration(
+        &self,
+        user_id: Uuid,
+        username: &str,
+    ) -> Result<CreationChallengeResponse> {
+        let passkeys = self
+            .repo
+            .get_passkeys(user_id)
+            .await
+            .map_err(|err| {
+                info!("get passkeys err: {err:?}");
+                anyhow!("No existing passkeys found for user")
+            })?
+            .into_iter()
+            .map(|pk| pk.cred_id().to_owned())
+            .collect::<Vec<_>>();
+
+        let (ccr, registration) = self.webauthn.start_passkey_registration(
+            user_id,
+            username,
+            username,
+            Some(passkeys),
+        )?;
+
+        self.repo.update_registration(user_id, registration).await?;
+
+        Ok(ccr)
+    }
+
+    pub async fn validate_sec_passkey(
+        &self,
+        user_id: Uuid,
+        cred: &RegisterPublicKeyCredential,
+    ) -> Result<()> {
+        let reg = self.repo.get_registration(user_id).await?;
+
+        let pk = self.webauthn.finish_passkey_registration(cred, &reg)?;
+
+        self.repo.update_passkey(user_id, pk).await?;
+
+        Ok(())
+    }
+
+    // # Authorization logic
+
     pub async fn get_authorization_token(&self, username: &str) -> Result<Uuid> {
         let user = self.user_service.get_user(username).await?;
         let authorize_token = match self.repo.get_authorization_token(user.id()).await? {

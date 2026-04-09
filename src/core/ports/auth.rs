@@ -14,6 +14,11 @@ pub trait AuthRepository: Send + Sync {
 
     async fn update_passkey(&self, user_id: Uuid, pk: Passkey) -> Result<()>;
     async fn get_passkeys(&self, user_id: Uuid) -> Result<Vec<Passkey>>;
+    async fn update_registration(
+        &self,
+        user_id: Uuid,
+        registartion: PasskeyRegistration,
+    ) -> Result<()>;
 
     async fn update_authen(&self, user_id: Uuid, pka: PasskeyAuthentication) -> Result<()>;
     async fn get_authentication(&self, user_id: Uuid) -> Result<PasskeyAuthentication>;

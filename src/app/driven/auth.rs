@@ -83,6 +83,27 @@ impl AuthRepository for AuthSqlRepo {
         Ok(registration)
     }
 
+    async fn update_registration(
+        &self,
+        user_id: Uuid,
+        registration: PasskeyRegistration,
+    ) -> Result<()> {
+        let registration = serde_json::to_string(&registration)?;
+        sqlx::query!(
+            r#"
+                UPDATE auth 
+                SET registration = ?
+                WHERE user_id = ?
+            "#,
+            registration,
+            user_id,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     async fn get_passkeys(&self, user_id: Uuid) -> Result<Vec<Passkey>> {
         sqlx::query!(
             r#"
