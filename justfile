@@ -42,15 +42,21 @@ migrate-status:
 prepare:
   DATABASE_URL="$DB_URL" cargo sqlx prepare --database-url "$DB_URL"
 
-# copy local taskwarrior db into project data dir for testing
-[group('task-sync-server')]
-task-db-copy:
+# bootstrap task db replica and push to sync server (task-sync-server must be running)
+[group('task-sync')]
+task-sync-init:
   mkdir -p "$(dirname "$TASK_DB_PATH")"
   cp ~/.config/task/taskchampion.sqlite3 "$TASK_DB_PATH"
-  echo "Copied taskchampion db to $TASK_DB_PATH"
+  sqlite3 "$TASK_DB_PATH" "UPDATE sync_meta SET value = '00000000-0000-0000-0000-000000000000' WHERE key = 'base_version'; UPDATE operations SET synced = 0;"
+  TASKDATA="$(dirname "$TASK_DB_PATH")" task rc.sync.server.url="$TASK_URL" rc.sync.server.client_id="$TASK_CLIENT_ID" rc.sync.encryption_secret="$TASK_SECRET" sync
 
-# launch local taskchampion sync server
-[group('task-sync-server')]
+# add a task to the local replica and sync to remote server
+[group('task-sync')]
+task-add description:
+  TASKDATA="$(dirname "$TASK_DB_PATH")" task add "{{description}}"
+  TASKDATA="$(dirname "$TASK_DB_PATH")" task rc.sync.server.url="$TASK_URL" rc.sync.server.client_id="$TASK_CLIENT_ID" rc.sync.encryption_secret="$TASK_SECRET" sync
+
+# launch local taskchampion sync server for the app to connect to
+[group('task-sync')]
 task-sync-server:
-  mkdir -p "$TASK_SYNC_DIR"
   taskchampion-sync-server --data-dir "$TASK_SYNC_DIR" --listen "0.0.0.0:$TASK_SYNC_PORT"
