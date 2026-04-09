@@ -15,7 +15,7 @@ pub struct UserAuth {
     registration: Option<PasskeyRegistration>,
     authentication: Option<PasskeyAuthentication>,
     authorize_token: Uuid,
-    auth_state: UserAuthorizedState,
+    authorized_state: UserAuthorizedState,
 }
 
 impl UserAuth {
@@ -26,7 +26,7 @@ impl UserAuth {
             authentication: None,
             passkeys: Vec::new(),
             authorize_token: Uuid::new_v4(),
-            auth_state: UserAuthorizedState::Not,
+            authorized_state: UserAuthorizedState::Not,
         }
     }
 
@@ -61,11 +61,11 @@ impl UserAuth {
     }
 
     pub fn is_authorized(&self) -> bool {
-        matches!(self.auth_state, UserAuthorizedState::Authorized)
+        matches!(self.authorized_state, UserAuthorizedState::Authorized)
     }
 
     #[must_use]
-    pub fn auth_state(&self) -> UserAuthorizedState {
-        self.auth_state.clone()
+    pub fn authorized_state(&self) -> UserAuthorizedState {
+        self.authorized_state.clone()
     }
 }

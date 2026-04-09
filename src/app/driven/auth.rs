@@ -41,10 +41,10 @@ impl AuthRepository for AuthSqlRepo {
             .registration()
             .and_then(|r| serde_json::to_string(&r).ok());
 
-        let auth_state = auth.auth_state();
+        let authorized_state = auth.authorized_state();
         sqlx::query!(
             r#"
-                INSERT INTO auth (user_id, registration, authentication, passkeys, auth_state)
+                INSERT INTO auth (user_id, registration, authentication, passkeys, authorized)
                 VALUES (?, ?, ?, ?, ?)
                 returning user_id as `user_id:uuid::Uuid`
             "#,
@@ -52,7 +52,7 @@ impl AuthRepository for AuthSqlRepo {
             registration,
             None::<String>,
             "[]",
-            auth_state,
+            authorized_state,
         )
         .fetch_one(&self.pool)
         .await?;
@@ -270,7 +270,7 @@ impl AuthRepository for AuthSqlRepo {
         sqlx::query!(
             r#"
                 UPDATE auth
-                SET authorize_token = ?, auth_state = ?
+                SET authorize_token = ?, authorized = ?
                 WHERE user_id = ?
             "#,
             token,
@@ -285,7 +285,7 @@ impl AuthRepository for AuthSqlRepo {
     async fn get_authorization(&self, user_id: Uuid) -> Result<UserAuthorizedState> {
         sqlx::query!(
             r#"
-                SELECT auth_state as "auth_state:crate::core::models::user_auth::UserAuthorizedState" FROM auth
+                SELECT authorized as "authorized:crate::core::models::user_auth::UserAuthorizedState" FROM auth
                 WHERE user_id = ?
             "#,
             user_id,
@@ -293,7 +293,7 @@ impl AuthRepository for AuthSqlRepo {
         .fetch_optional(&self.pool)
         .await?
         .ok_or(anyhow!("No auth state found for user"))
-        .map(|r| r.auth_state)
+        .map(|r| r.authorized)
     }
 }
 
