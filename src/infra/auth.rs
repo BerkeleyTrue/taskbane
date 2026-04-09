@@ -130,6 +130,7 @@ where
         SessionAuthState::from_session(session)
             .await
             .map_err(|err| {
+                // TODO: should redirect user to login
                 info!("Failed to pull session from store: {:?}", err);
                 (http::StatusCode::BAD_REQUEST, "Failed to parse session")
             })

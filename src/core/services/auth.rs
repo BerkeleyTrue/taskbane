@@ -153,10 +153,10 @@ impl AuthService {
     pub async fn authorize_user(
         &self,
         username: &str,
-        task_id: Uuid,
+        // TODO: store in auth state?
+        _task_id: Uuid,
         task_description: &str,
     ) -> Result<()> {
-        info!("auth token: {task_id}, '{task_description}");
         if !task_description.starts_with("taskbane:") {
             return Err(anyhow!("Task is not an authorizing task"));
         }
@@ -164,7 +164,7 @@ impl AuthService {
         let uploaded_token = task_description
             .split("taskbane:")
             .nth(1)
-            .inspect(|str| info!("uuid: {str}"))
+            .inspect(|str| info!("auth token: {str}"))
             .and_then(|str| Uuid::parse_str(str).ok())
             .ok_or(anyhow!("No token found in authorizing task"))?;
 
@@ -184,7 +184,7 @@ impl AuthService {
             ));
         }
         self.repo
-            .update_authorization_token(user.id(), uploaded_token)
+            .update_authorization(user.id(), UserAuthorizedState::Authorized)
             .await?;
 
         Ok(())

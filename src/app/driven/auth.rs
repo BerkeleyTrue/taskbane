@@ -254,6 +254,7 @@ impl AuthRepository for AuthSqlRepo {
         .map(|r| r.authorize_token)
     }
 
+    // update users auth token, and de-auth them
     async fn update_authorization_token(&self, user_id: Uuid, token: Uuid) -> Result<()> {
         // make sure user has existing auth
         sqlx::query!(
@@ -274,7 +275,7 @@ impl AuthRepository for AuthSqlRepo {
                 WHERE user_id = ?
             "#,
             token,
-            UserAuthorizedState::Authorized,
+            UserAuthorizedState::Not,
             user_id,
         )
         .fetch_optional(&self.pool)
@@ -294,6 +295,22 @@ impl AuthRepository for AuthSqlRepo {
         .await?
         .ok_or(anyhow!("No auth state found for user"))
         .map(|r| r.authorized)
+    }
+
+    async fn update_authorization(&self, user_id: Uuid, auth: UserAuthorizedState) -> Result<()> {
+        sqlx::query!(
+            r#"
+                UPDATE auth
+                SET authorized = ?
+                WHERE user_id = ?
+            "#,
+            auth,
+            user_id,
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }
 
