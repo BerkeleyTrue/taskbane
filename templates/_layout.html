@@ -9,17 +9,38 @@
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
   </head>
-  <body hx-ext=response-targets>
+  <body hx-ext="response-targets">
     <progress id="loading-bar"></progress>
     {% include "partials/alerts.html" %}
     {% include "partials/navbar.html" %}
 
-    <main class="container">
-    {% block content %}{% endblock %}
-    </main>
+    <main class="container">{% block content %}{% endblock %}</main>
 
-    <footer>
-      <p>Insert Feet Pics</p>
+    <footer class="container">
+      <section>
+        <nav>
+          <ul>
+            <li>
+              <a
+                href="https://berkeleytrue.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                created by Berkeley
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                @github
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </section>
     </footer>
     <script src="/public/js/livereload.js"></script>
     <script src="/public/js/htmx.js"></script>
