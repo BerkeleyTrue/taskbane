@@ -293,10 +293,7 @@ async fn post_validate_authenticate(
     };
 
     Ok((
-        [(
-            axum::http::header::HeaderName::from_static("hx-redirect"),
-            redirect_path,
-        )],
+        [(HeaderName::from_static("hx-redirect"), redirect_path)],
         "",
     ))
 }
@@ -519,7 +516,7 @@ async fn post_validate_sec_passkey(
     session_auth: SessionAuthState,
     State(AuthServices { auth_service, .. }): State<AuthServices>,
     Json(cred): Json<RegisterPublicKeyCredential>,
-) -> Result<Redirect, Response> {
+) -> Result<impl IntoResponse, Response> {
     let user_id = session_auth.user_id();
 
     auth_service
@@ -537,5 +534,11 @@ async fn post_validate_sec_passkey(
         .await
         .map_err(map_err_to_alert)?;
 
-    Ok(Redirect::to("/"))
+    Ok((
+        [(
+            HeaderName::from_static("hx-redirect"),
+            HeaderValue::from_static("/task"),
+        )],
+        "",
+    ))
 }
