@@ -2,7 +2,7 @@
   description = "Description for the project";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     nixgl.url = "github:nix-community/nixGL";
     flake-parts.url = "github:hercules-ci/flake-parts";
