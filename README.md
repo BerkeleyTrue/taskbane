@@ -1,5 +1,47 @@
 # taskbane
-a mobile first taskwarrior ui
+
+a mobile first taskwarrior ui. Point it to a sync server, login with passkey auth, authorize users against the taskdb. 
+
+## Deployment
+
+### Environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DB_URL` | yes | — | SQLite connection string (e.g. `sqlite:///var/lib/taskbane/taskbane.db`) |
+| `TASK_URL` | yes | — | Taskchampion sync server URL |
+| `TASK_CLIENT_ID` | yes | — | Taskchampion client UUID |
+| `TASK_SECRET` | yes | — | Taskchampion encryption secret |
+| `ORIGIN` | yes | — | WebAuthn origin (e.g. `https://tasks.example.com`) |
+| `RP_ID` | no | `localhost` | WebAuthn relying party ID (e.g. `tasks.example.com`) |
+| `RP_NAME` | no | `taskbane` | WebAuthn relying party display name |
+| `PORT` | no | `3000` | HTTP port to listen on |
+
+### NixOS
+
+Add the flake as an input and configure a systemd service:
+
+```nix
+# flake.nix
+inputs.taskbane.url = "github:youruser/taskbane";
+
+# nixos configuration
+{ inputs, pkgs, ... }:
+let
+  taskbane = inputs.taskbane.packages.x86_64-linux.default;
+in {
+  systemd.services.taskbane = {
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${taskbane}/bin/taskbane";
+      WorkingDirectory = "${taskbane}/share/taskbane";
+      EnvironmentFile = "/var/lib/taskbane/.env";
+      DynamicUser = true;
+      StateDirectory = "taskbane";
+    };
+  };
+}
+```
 
 ## TODO:
 
