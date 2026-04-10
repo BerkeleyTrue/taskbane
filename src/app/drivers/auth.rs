@@ -445,6 +445,10 @@ async fn post_authorize_user(
             .into_response()
         })?;
 
+    let _ = alert_success("You have successfully Authorized! Welcome.", &session)
+        .await
+        .inspect_err(|err| info!("Error alerting {err:?}"));
+
     Ok((
         [(
             HeaderName::from_static("hx-redirect"),
