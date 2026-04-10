@@ -13,12 +13,15 @@ use crate::infra::tower_session::create_session_store;
 use axum::Router;
 use dotenv::dotenv;
 use tokio::sync::oneshot;
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // initialize tracing
     tracing_subscriber::fmt::init();
-    dotenv().expect("Failed to load .env");
+    dotenv().inspect_err(|err| {
+        info!(".env file missing");
+    });
     let (tx, rx) = oneshot::channel();
     let shutdown_token = tokio_util::sync::CancellationToken::new();
     let pool = create_sqlx();
