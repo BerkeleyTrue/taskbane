@@ -93,7 +93,7 @@ impl SessionAuthState {
     }
 
     pub fn login(self, auth_state: UserAuthorizedState) -> Self {
-        if matches!(auth_state, UserAuthorizedState::Authorized) {
+        if matches!(auth_state, UserAuthorizedState::Authorized(_)) {
             SessionAuthState {
                 user_id: self.user_id,
                 username: self.username.clone(),

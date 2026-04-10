@@ -305,7 +305,7 @@ async fn post_validate_authenticate(
         .or(Err(ApiError::InternalServerError))?;
 
     let redirect_path = match auth_state {
-        UserAuthorizedState::Authorized => HeaderValue::from_static("/task"),
+        UserAuthorizedState::Authorized(_) => HeaderValue::from_static("/task"),
         UserAuthorizedState::Not => HeaderValue::from_static("/authorize-user"),
     };
 

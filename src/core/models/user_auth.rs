@@ -1,11 +1,10 @@
 use uuid::Uuid;
 use webauthn_rs::prelude::{Passkey, PasskeyAuthentication, PasskeyRegistration};
 
-#[derive(Debug, Clone, sqlx::Type)]
-#[sqlx(type_name = "TEXT", rename_all = "lowercase")]
+#[derive(Debug, Clone)]
 pub enum UserAuthorizedState {
     Not,
-    Authorized,
+    Authorized(Uuid),
 }
 
 #[derive(Debug, Clone)]
@@ -61,7 +60,7 @@ impl UserAuth {
     }
 
     pub fn is_authorized(&self) -> bool {
-        matches!(self.authorized_state, UserAuthorizedState::Authorized)
+        matches!(self.authorized_state, UserAuthorizedState::Authorized(_))
     }
 
     #[must_use]

@@ -41,11 +41,14 @@ impl AuthRepository for AuthSqlRepo {
             .registration()
             .and_then(|r| serde_json::to_string(&r).ok());
 
-        let authorized_state = auth.authorized_state();
+        let (authorized_state, task_id) = match auth.authorized_state() {
+            UserAuthorizedState::Not => ("not", None),
+            UserAuthorizedState::Authorized(task_id) => ("authorized", Some(task_id)),
+        };
         sqlx::query!(
             r#"
-                INSERT INTO auth (user_id, registration, authentication, passkeys, authorized)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO auth (user_id, registration, authentication, passkeys, authorized, authorized_task_id)
+                VALUES (?, ?, ?, ?, ?, ?)
                 returning user_id as `user_id:uuid::Uuid`
             "#,
             user_id,
@@ -53,6 +56,7 @@ impl AuthRepository for AuthSqlRepo {
             None::<String>,
             "[]",
             authorized_state,
+            task_id,
         )
         .fetch_one(&self.pool)
         .await?;
@@ -275,7 +279,7 @@ impl AuthRepository for AuthSqlRepo {
                 WHERE user_id = ?
             "#,
             token,
-            UserAuthorizedState::Not,
+            "not",
             user_id,
         )
         .fetch_optional(&self.pool)
@@ -286,7 +290,7 @@ impl AuthRepository for AuthSqlRepo {
     async fn get_authorization(&self, user_id: Uuid) -> Result<UserAuthorizedState> {
         sqlx::query!(
             r#"
-                SELECT authorized as "authorized:crate::core::models::user_auth::UserAuthorizedState" FROM auth
+                SELECT authorized, authorized_task_id as "task_id:uuid::Uuid" FROM auth
                 WHERE user_id = ?
             "#,
             user_id,
@@ -294,17 +298,26 @@ impl AuthRepository for AuthSqlRepo {
         .fetch_optional(&self.pool)
         .await?
         .ok_or(anyhow!("No auth state found for user"))
-        .map(|r| r.authorized)
+        .map(|r| match (r.authorized.as_ref(), r.task_id) {
+            ("authorized", Some(task_id)) => UserAuthorizedState::Authorized(task_id),
+            _ => UserAuthorizedState::Not,
+        })
     }
 
     async fn update_authorization(&self, user_id: Uuid, auth: UserAuthorizedState) -> Result<()> {
+        let (authorized_state, task_id) = match auth {
+            UserAuthorizedState::Not => ("not", None),
+            UserAuthorizedState::Authorized(task_id) => ("authorized", Some(task_id)),
+        };
+
         sqlx::query!(
             r#"
                 UPDATE auth
-                SET authorized = ?
+                SET authorized = ?, authorized_task_id = ?
                 WHERE user_id = ?
             "#,
-            auth,
+            authorized_state,
+            task_id,
             user_id,
         )
         .fetch_optional(&self.pool)

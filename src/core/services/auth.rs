@@ -153,8 +153,7 @@ impl AuthService {
     pub async fn authorize_user(
         &self,
         username: &str,
-        // TODO: store in auth state?
-        _task_id: Uuid,
+        task_id: Uuid,
         task_description: &str,
     ) -> Result<()> {
         if !task_description.starts_with("taskbane:") {
@@ -184,7 +183,7 @@ impl AuthService {
             ));
         }
         self.repo
-            .update_authorization(user.id(), UserAuthorizedState::Authorized)
+            .update_authorization(user.id(), UserAuthorizedState::Authorized(task_id))
             .await?;
 
         Ok(())
