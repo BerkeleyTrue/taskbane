@@ -2,6 +2,18 @@ set dotenv-load := true
 default:
   just --list
 
+[group('flake')]
+flake-build:
+  nix build
+
+[group('flake')]
+flake-update:
+  nix flake update
+
+[group('flake')]
+flake-update-input input:
+  nix flake update {{input}}
+
 [group('rust')]
 run:
   DATABASE_URL="$DB_URL" cargo run
