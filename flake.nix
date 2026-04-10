@@ -55,6 +55,8 @@
 
           SQLX_OFFLINE = "true";
 
+          meta.mainProgram = "taskbane";
+
           postInstall = ''
             mkdir -p $out/share/taskbane
             cp -r public $out/share/taskbane/public
