@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE taskdb_operations SET synced = true WHERE synced = false",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "671a65ec2a65d72afcf5b0e178189b3c2476151c0431133ff5769e0f76e64e7e"
+}

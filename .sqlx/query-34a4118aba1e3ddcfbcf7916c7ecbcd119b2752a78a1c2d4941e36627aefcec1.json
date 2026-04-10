@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, data FROM taskdb_operations WHERE NOT synced ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "data",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "34a4118aba1e3ddcfbcf7916c7ecbcd119b2752a78a1c2d4941e36627aefcec1"
+}

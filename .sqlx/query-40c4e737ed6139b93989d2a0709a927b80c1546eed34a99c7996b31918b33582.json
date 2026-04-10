@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO auth (user_id, registration, authentication, passkeys, authorized, authorized_task_id)\n                VALUES (?, ?, ?, ?, ?, ?)\n                returning user_id as `user_id:uuid::Uuid`\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "40c4e737ed6139b93989d2a0709a927b80c1546eed34a99c7996b31918b33582"
+}

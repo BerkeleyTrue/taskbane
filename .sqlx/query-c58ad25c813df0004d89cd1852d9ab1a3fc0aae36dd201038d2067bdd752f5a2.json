@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT passkeys FROM auth\n                WHERE user_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "passkeys",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c58ad25c813df0004d89cd1852d9ab1a3fc0aae36dd201038d2067bdd752f5a2"
+}

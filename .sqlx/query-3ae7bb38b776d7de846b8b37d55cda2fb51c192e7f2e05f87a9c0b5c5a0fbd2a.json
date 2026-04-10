@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT data FROM taskdb_operations WHERE NOT synced ORDER BY id ASC",
+  "describe": {
+    "columns": [
+      {
+        "name": "data",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3ae7bb38b776d7de846b8b37d55cda2fb51c192e7f2e05f87a9c0b5c5a0fbd2a"
+}

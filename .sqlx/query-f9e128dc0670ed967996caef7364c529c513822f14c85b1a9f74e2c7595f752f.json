@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO taskdb_sync_meta (key, value) VALUES ('base_version', ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f9e128dc0670ed967996caef7364c529c513822f14c85b1a9f74e2c7595f752f"
+}

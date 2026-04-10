@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, uuid as \"uuid:uuid::Uuid\" FROM taskdb_working_set ORDER BY id ASC",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "uuid:uuid::Uuid",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "18369f3e7b6bf43757074223e21f5badf01c6c3db2492472a9cec7511f448fb5"
+}

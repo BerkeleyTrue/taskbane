@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM taskdb_working_set",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "d6e56e18581717461d87ad5812f9038e103aad1f1b7fe810bd5249986e16314c"
+}

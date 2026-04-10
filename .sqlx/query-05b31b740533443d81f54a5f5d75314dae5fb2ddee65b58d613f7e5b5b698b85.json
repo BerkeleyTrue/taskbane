@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT authorize_token as `authorize_token:uuid::Uuid` FROM auth\n                WHERE user_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "authorize_token:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "05b31b740533443d81f54a5f5d75314dae5fb2ddee65b58d613f7e5b5b698b85"
+}

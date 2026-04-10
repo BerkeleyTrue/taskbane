@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT data FROM taskdb_operations WHERE uuid = ? ORDER BY id ASC",
+  "describe": {
+    "columns": [
+      {
+        "name": "data",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "095fc2a0285cf874ddfb626468822772ecf65d8d78c47f90369c7908993eb2e2"
+}

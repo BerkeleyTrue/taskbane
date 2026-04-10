@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE auth\n                SET authorize_token = ?, authorized = ?\n                WHERE user_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "90baf9587005486e0940b514184d1beaf33d23cfb73d288e1f1c376df22cd561"
+}

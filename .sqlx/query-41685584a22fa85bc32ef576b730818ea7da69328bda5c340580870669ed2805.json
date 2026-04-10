@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT authentication FROM auth\n                WHERE user_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "authentication",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "41685584a22fa85bc32ef576b730818ea7da69328bda5c340580870669ed2805"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO taskdb_working_set (id, uuid) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "48b85ab562a2f3bffcaa361f55887d40369ea387e3eddfb3f86f99c7b569d1c3"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO taskdb_tasks (uuid, data) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "325379efe507d0cab48167571b78e3a9fd62aa5fa147959379809062fef7f3c3"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE auth\n                SET passkeys = ?, registration = NULL\n                WHERE user_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "db1c32bc33c045688b355dba501615120c6888e30ca7da544fcb4b1041f89272"
+}

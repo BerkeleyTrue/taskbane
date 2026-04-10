@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT authorized, authorized_task_id as \"task_id:uuid::Uuid\" FROM auth\n                WHERE user_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "authorized",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "task_id:uuid::Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "cf9e8e934dace711184128c238e9c925eae6687baefb53c747698f7350bd5118"
+}

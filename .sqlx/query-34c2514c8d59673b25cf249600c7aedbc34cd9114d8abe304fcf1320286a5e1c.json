@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT taskdb_tasks.uuid as \"uuid:uuid::Uuid\", taskdb_tasks.data\n            FROM taskdb_tasks\n            JOIN taskdb_working_set ON taskdb_tasks.uuid = taskdb_working_set.uuid\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "uuid:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "data",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "34c2514c8d59673b25cf249600c7aedbc34cd9114d8abe304fcf1320286a5e1c"
+}

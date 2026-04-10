@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE auth\n                SET authentication = ?, registration = NULL\n                WHERE user_id = ?\n                RETURNING user_id as `user_id:uuid::Uuid`\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "508d6def6dd3b849af79d354ba5411276ae04f09839d82b856c73e6c35bd6a41"
+}

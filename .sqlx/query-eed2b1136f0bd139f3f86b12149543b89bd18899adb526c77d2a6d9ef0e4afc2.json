@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT value FROM taskdb_sync_meta WHERE key = 'base_version'",
+  "describe": {
+    "columns": [
+      {
+        "name": "value",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "eed2b1136f0bd139f3f86b12149543b89bd18899adb526c77d2a6d9ef0e4afc2"
+}

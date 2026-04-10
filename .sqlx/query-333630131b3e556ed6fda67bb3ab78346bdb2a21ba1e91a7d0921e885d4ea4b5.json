@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO taskdb_working_set (id, uuid) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "333630131b3e556ed6fda67bb3ab78346bdb2a21ba1e91a7d0921e885d4ea4b5"
+}

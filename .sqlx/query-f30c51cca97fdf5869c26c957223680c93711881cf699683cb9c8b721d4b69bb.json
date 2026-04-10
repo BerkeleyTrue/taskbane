@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM taskdb_operations\n               WHERE uuid IN (\n                   SELECT taskdb_operations.uuid FROM taskdb_operations\n                   LEFT JOIN taskdb_tasks ON taskdb_operations.uuid = taskdb_tasks.uuid\n                   WHERE taskdb_tasks.uuid IS NULL\n               )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "f30c51cca97fdf5869c26c957223680c93711881cf699683cb9c8b721d4b69bb"
+}

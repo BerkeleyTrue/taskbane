@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT uuid as \"uuid:uuid::Uuid\" FROM taskdb_tasks",
+  "describe": {
+    "columns": [
+      {
+        "name": "uuid:uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c97a3a8c9c006eb82c8efd2cd2daddf25d9f55117aa03fb87ed7803e273ec139"
+}
