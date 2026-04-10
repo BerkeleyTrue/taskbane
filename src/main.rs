@@ -19,7 +19,7 @@ use tracing::info;
 async fn main() -> anyhow::Result<()> {
     // initialize tracing
     tracing_subscriber::fmt::init();
-    dotenv().inspect_err(|err| {
+    let _ = dotenv().inspect_err(|_| {
         info!(".env file missing");
     });
     let (tx, rx) = oneshot::channel();
