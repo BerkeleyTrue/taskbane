@@ -33,7 +33,36 @@
           overlays = [
           ];
         };
+
+        taskbane = pkgs.rustPlatform.buildRustPackage {
+          pname = "taskbane";
+          version = "0.1.0";
+          src = builtins.path {
+            path = ./.;
+            name = "taskbane-src";
+            filter = path: type:
+              !builtins.elem (builtins.baseNameOf path) [
+                "target"
+                "data"
+                "node_modules"
+              ];
+          };
+
+          cargoLock.lockFile = ./Cargo.lock;
+
+          nativeBuildInputs = with pkgs; [pkg-config];
+          buildInputs = with pkgs; [openssl sqlite];
+
+          SQLX_OFFLINE = "true";
+
+          postInstall = ''
+            mkdir -p $out/share/taskbane
+            cp -r public $out/share/taskbane/public
+          '';
+        };
       in {
+        packages.default = taskbane;
+
         formatter.default = pkgs.alejandra;
 
         pre-commit.settings.hooks.alejandra.enable = true;
