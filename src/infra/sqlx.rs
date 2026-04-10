@@ -1,5 +1,6 @@
 use std::{env, str::FromStr};
 
+use anyhow::Result;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
     SqlitePool,
@@ -13,5 +14,12 @@ pub fn create_sqlx() -> SqlitePool {
         .unwrap()
         .journal_mode(SqliteJournalMode::Wal)
         .create_if_missing(true);
+
     SqlitePool::connect_lazy_with(ops)
+}
+
+pub async fn run_migration(pool: &SqlitePool) -> Result<()> {
+    info!("running migrations");
+    sqlx::migrate!().run(pool).await?;
+    Ok(())
 }

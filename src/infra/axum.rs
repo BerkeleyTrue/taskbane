@@ -75,15 +75,14 @@ pub async fn start_server(
     session_store.run_migration().await.unwrap();
     let session_layer = session_store.create_layer();
 
-    // Initialize tracing
-    tracing::info!("Starting Axum server...");
+    info!("starting Axum server...");
 
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
         .await
         .unwrap();
 
-    info!("Listening on port {port}");
+    info!("listening on port {port}");
     tx.send(()).unwrap();
     let app = app
         .fallback(|| async { AppError::NotFound })
@@ -120,7 +119,7 @@ async fn shutdown_signal(shutdown_token: CancellationToken) {
         _ = terminate => {},
     }
 
-    info!("Initiating graceful shutdown...");
+    info!("initiating graceful shutdown...");
     shutdown_token.cancel();
 }
 
@@ -134,6 +133,7 @@ fn middleware(app: Router) -> Router {
                 )
                 .on_response(|res: &Response<_>, _latency: Duration, span: &Span| {
                     span.record("status", tracing::field::display(res.status()));
+                    // this is where the log actually happens
                     info!("")
                 }),
         );

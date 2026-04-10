@@ -7,7 +7,7 @@ use crate::app::driven;
 use crate::app::drivers;
 use crate::core::services::{self, CreateServiceParams};
 use crate::infra::axum::start_server;
-use crate::infra::sqlx::create_sqlx;
+use crate::infra::sqlx::{create_sqlx, run_migration};
 use crate::infra::task::start_sync_loop;
 use crate::infra::tower_session::create_session_store;
 use axum::Router;
@@ -45,6 +45,7 @@ async fn main() -> anyhow::Result<()> {
         task_service,
     });
 
+    run_migration(&pool).await?;
     start_sync_loop(task_replica, task_server_config);
     start_server(app, tx, shutdown_token, session_store).await;
     Ok(())
