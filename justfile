@@ -23,6 +23,10 @@ build:
   DATABASE_URL="$DB_URL" cargo build
 
 [group('rust')]
+build-release:
+  DATABASE_URL="$DB_URL" cargo build --release
+
+[group('rust')]
 watch:
   DATABASE_URL="$DB_URL" cargo watch --ignore 'public/**' -x run
 

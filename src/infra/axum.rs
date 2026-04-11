@@ -83,7 +83,9 @@ pub async fn start_server(
         .unwrap();
 
     info!("listening on port {port}");
-    tx.send(()).unwrap();
+    let _ = tx.send(()).inspect_err(|err| {
+        info!("tx: err sending {err:?}");
+    });
     let app = app
         .fallback(|| async { AppError::NotFound })
         .layer(session_layer);

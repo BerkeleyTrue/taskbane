@@ -22,7 +22,10 @@ async fn main() -> anyhow::Result<()> {
     let _ = dotenv().inspect_err(|_| {
         info!(".env file missing");
     });
+    #[cfg(debug_assertions)]
     let (tx, rx) = oneshot::channel();
+    #[cfg(not(debug_assertions))]
+    let (tx, _) = oneshot::channel();
     let shutdown_token = tokio_util::sync::CancellationToken::new();
     let pool = create_sqlx();
     let session_store = create_session_store(&pool);
@@ -41,7 +44,9 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new();
     let app = drivers::create_drivers(drivers::CreateDriverParams {
         app,
+        #[cfg(debug_assertions)]
         rx,
+        #[cfg(debug_assertions)]
         shutdown_token: shutdown_token.clone(),
         user_service,
         auth_service,
