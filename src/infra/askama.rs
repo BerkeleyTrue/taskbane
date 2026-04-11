@@ -25,15 +25,26 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Globals {
     pub alerts: Alerts,
+    pub debug: bool,
+}
+
+impl Default for Globals {
+    fn default() -> Self {
+        Self {
+            alerts: Alerts::default(),
+            debug: cfg!(debug_assertions),
+        }
+    }
 }
 
 impl Globals {
     pub async fn fetch(session: &Session) -> Self {
         Self {
             alerts: flush_alert(session).await,
+            debug: cfg!(debug_assertions),
         }
     }
 

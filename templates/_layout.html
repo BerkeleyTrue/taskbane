@@ -42,7 +42,7 @@
         </nav>
       </section>
     </footer>
-    <script src="/public/js/livereload.js"></script>
+    {% if globals.debug %}<script src="/public/js/livereload.js"></script>{% endif %}
     <script src="/public/js/htmx.js"></script>
     <script src="/public/js/htmx-response-targets.js"></script>
     <script src="/public/js/modal.js"></script>
