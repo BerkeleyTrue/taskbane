@@ -15,6 +15,10 @@ use uuid::Uuid;
 
 use crate::types::ArcRw;
 
+// TODO: use mutex instead
+// replica methods are all mut,
+// so all methods require write lock,
+// making rwlock pointless over mutex
 pub type ArcRep<S> = ArcRw<Replica<S>>;
 
 pub async fn create_task_storage(conn: &SqlitePool) -> Result<(ArcRep<SqlxStorage>, ServerConfig)> {
