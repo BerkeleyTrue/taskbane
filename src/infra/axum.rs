@@ -89,9 +89,14 @@ pub async fn start_server(
     let app = app
         .fallback(|| async { AppError::NotFound })
         .layer(session_layer);
+    let public_dir = env::var("PUBLIC_DIR")
+        .inspect_err(|_| {
+            info!("TASKBANE_PUBLIC_DIR not set, using default: \"public\"");
+        })
+        .unwrap_or_else(|_| "public".to_string());
     serve(
         listener,
-        middleware(app).nest_service("/public", ServeDir::new("public")),
+        middleware(app).nest_service("/public", ServeDir::new(public_dir)),
     )
     .with_graceful_shutdown(shutdown_signal(shutdown_token))
     .await

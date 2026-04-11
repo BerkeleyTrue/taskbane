@@ -16,6 +16,7 @@ a mobile first taskwarrior ui. Point it to a sync server, login with passkey aut
 | `RP_ID` | no | `localhost` | WebAuthn relying party ID (e.g. `tasks.example.com`) |
 | `RP_NAME` | no | `taskbane` | WebAuthn relying party display name |
 | `PORT` | no | `3000` | HTTP port to listen on |
+| `PUBLIC_DIR` | no | `public` | Path to static assets directory. Set to `$out/share/taskbane/public` when running from a Nix build. |
 
 ### NixOS
 
