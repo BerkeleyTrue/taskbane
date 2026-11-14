@@ -1,6 +1,6 @@
 use anyhow::Result;
 use sqlx::SqlitePool;
-use tower_sessions::SessionManagerLayer;
+use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
 
 pub trait MySession {
@@ -15,7 +15,10 @@ impl MySession for SqliteStore {
     }
 
     fn create_layer(self) -> SessionManagerLayer<SqliteStore> {
-        SessionManagerLayer::new(self).with_secure(false)
+        let expires = Expiry::OnInactivity(Duration::weeks(1));
+        SessionManagerLayer::new(self)
+            .with_secure(false)
+            .with_expiry(expires)
     }
 }
 
